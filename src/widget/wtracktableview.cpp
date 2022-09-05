@@ -5,6 +5,7 @@
 #include <QScrollBar>
 #include <QShortcut>
 #include <QUrl>
+#include <QClipboard>
 
 #include "control/controlobject.h"
 #include "library/dao/trackschema.h"
@@ -751,6 +752,39 @@ void WTrackTableView::keyPressEvent(QKeyEvent* event) {
         // causes a track to load since we allow in-line editing
         // of table items in general
         return;
+    }
+    else if (event->matches(QKeySequence::Cut))
+    {
+        TrackModel* trackModel = getTrackModel();
+        if (!trackModel || trackModel->isLocked()) {
+            return;
+        }
+        
+        const QModelIndexList indices = selectionModel()->selectedRows();
+        trackModel->clipboardCut(indices);
+    }         
+    else if(event->matches(QKeySequence::Copy)){
+        TrackModel* trackModel = getTrackModel();
+        if (!trackModel || trackModel->isLocked()) {
+            return;
+        }
+
+        const QModelIndexList indices = selectionModel()->selectedRows();
+        QApplication::clipboard()->setText(trackModel->clipboardCopy(indices));
+    }
+    else if(event->matches(QKeySequence::Paste)) {
+        TrackModel* trackModel = getTrackModel();
+        if (!trackModel || trackModel->isLocked()) {
+            return;
+        }
+        const QModelIndexList indices = selectionModel()->selectedRows();
+        QModelIndex destIndex;
+        if (!indices.empty())
+        {
+            destIndex = indices.last();
+            destIndex = destIndex.siblingAtRow(destIndex.row() + 1);
+        }
+        trackModel->clipboardPaste(destIndex, QApplication::clipboard()->text());
     } else {
         QTableView::keyPressEvent(event);
     }

@@ -18,6 +18,7 @@
 #include "sources/soundsourceproxy.h"
 #include "track/track.h"
 #include "util/compatibility.h"
+#include "util/clipboardtext.h"
 #include "util/dnd.h"
 #include "widget/wlibrary.h"
 #include "widget/wlibrarysidebar.h"
@@ -166,6 +167,26 @@ void AutoDJFeature::activate() {
     emit switchToView(kViewName);
     emit disableSearch();
     emit enableCoverArtDisplay(true);
+}
+
+void AutoDJFeature::clipboardPaste(const QString& text) {
+    const QList<QUrl> urls = clipboardTextToUrls(text);
+    QList<TrackId> trackIds;
+    if (urls.size() == 1 && urls[0].scheme() == "playlist")
+    {
+        int fullPlaylistId = m_playlistDao.getPlaylistIdFromName(urls[0].path());
+        if (fullPlaylistId != -1) {
+            trackIds = m_playlistDao.getTrackIds(fullPlaylistId);
+        }
+    }
+    else
+    {
+        // this filters duplicates. do we want that?
+        trackIds = m_pLibrary->trackCollections()->internalCollection()->resolveTrackIdsFromUrls(urls, false);
+    }
+    if (trackIds.size()) {
+        m_playlistDao.appendTracksToPlaylist(trackIds, m_iAutoDJPlaylistId);
+    }
 }
 
 bool AutoDJFeature::dropAccept(const QList<QUrl>& urls, QObject* pSource) {

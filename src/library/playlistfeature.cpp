@@ -17,6 +17,7 @@
 #include "util/db/dbconnection.h"
 #include "util/dnd.h"
 #include "util/duration.h"
+#include "util/clipboardtext.h"
 #include "widget/wlibrary.h"
 #include "widget/wlibrarysidebar.h"
 #include "widget/wlibrarytextbrowser.h"
@@ -125,6 +126,54 @@ bool PlaylistFeature::dropAcceptChild(
 
     // Return whether appendTracksToPlaylist succeeded.
     return m_playlistDao.appendTracksToPlaylist(trackIds, playlistId);
+}
+
+void PlaylistFeature::clipboardCutChild(const QModelIndex& index)
+{
+    // TODO m0dB remove all tracks from the playlist
+}
+
+QString PlaylistFeature::clipboardCopyChild(const QModelIndex& index) const
+{
+    int playlistId = playlistIdFromIndex(index);
+    VERIFY_OR_DEBUG_ASSERT(playlistId >= 0) {
+        return QString();
+    }
+    QUrl url;
+    url.setPath(m_playlistDao.getPlaylistName(playlistId));
+    url.setScheme("playlist");
+    QString string = url.toString();
+    return string;
+}
+
+void PlaylistFeature::clipboardPaste(const QString& text) {
+    // consider creating a new playlist
+    Q_UNUSED(text);
+}
+
+void PlaylistFeature::clipboardPasteChild(
+        const QModelIndex& index, const QString& text) {
+    int playlistId = playlistIdFromIndex(index);
+    VERIFY_OR_DEBUG_ASSERT(playlistId >= 0) {
+        return;
+    }
+    const QList<QUrl> urls = clipboardTextToUrls(text);
+    QList<TrackId> trackIds;
+    if (urls.size() == 1 && urls[0].scheme() == "playlist")
+    {
+        int fullPlaylistId = m_playlistDao.getPlaylistIdFromName(urls[0].path());
+        if (fullPlaylistId != -1) {
+            trackIds = m_playlistDao.getTrackIds(fullPlaylistId);
+        }
+    }
+    else
+    {
+        // this filters duplicates. do we want that?
+        trackIds = m_pLibrary->trackCollections()->internalCollection()->resolveTrackIdsFromUrls(urls, false);
+    }
+    if (trackIds.size()) {
+        m_playlistDao.appendTracksToPlaylist(trackIds, playlistId);
+    }
 }
 
 bool PlaylistFeature::dragMoveAcceptChild(const QModelIndex& index, const QUrl& url) {

@@ -28,6 +28,7 @@ class PlaylistTableModel final : public BaseSqlTableModel {
     // Adding multiple tracks at one to a playlist. Returns the number of
     // successful additions.
     int addTracks(const QModelIndex& index, const QList<QString>& locations) final;
+    int addTracks(const QModelIndex& index, const QList<TrackId>& tracksIds) final;
     bool isLocked() final;
     CapabilitiesFlags getCapabilities() const final;
 

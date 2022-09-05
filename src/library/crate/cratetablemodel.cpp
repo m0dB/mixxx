@@ -89,18 +89,27 @@ bool CrateTableModel::addTrack(const QModelIndex& index, const QString& location
 
     QList<TrackId> trackIds;
     trackIds.append(pTrack->getId());
+    
+    addTracks(index, trackIds);
+
+    return true;
+}
+
+int CrateTableModel::addTracks(const QModelIndex& index,
+                               const QList<TrackId>& trackIds) {
+
     if (!m_pTrackCollectionManager->internalCollection()->addCrateTracks(m_selectedCrate, trackIds)) {
         qDebug() << "CrateTableModel::addTrack:"
-                << "Failed to add track"
-                << location
+                << "Failed to add tracks"
                 << "to crate"
                 << m_selectedCrate;
-        return false;
+        return 0;
     }
 
     // TODO(rryan) just add the track don't select
     select();
-    return true;
+
+    return trackIds.size();
 }
 
 TrackModel::CapabilitiesFlags CrateTableModel::getCapabilities() const {
@@ -157,8 +166,7 @@ int CrateTableModel::addTracks(const QModelIndex& index,
         return 0;
     }
 
-    select();
-    return trackIds.size();
+    return addTracks(index, trackIds);
 }
 
 void CrateTableModel::removeTracks(const QModelIndexList& indices) {

@@ -833,3 +833,41 @@ QList<TrackRef> BaseSqlTableModel::getTrackRefs(
     }
     return trackRefs;
 }
+
+void BaseSqlTableModel::clipboardCut(const QModelIndexList& indices)
+{
+    removeTracks(indices);
+}
+
+QString BaseSqlTableModel::clipboardCopy(const QModelIndexList& indices) const
+{
+    QString text;
+    for (const QModelIndex& index : indices) {
+        if (index.isValid()) {
+            QUrl url = QUrl::fromLocalFile(getTrackLocation(index));
+            text += url.toString() + "\n";
+        }
+    }
+    return text;
+}
+
+void BaseSqlTableModel::clipboardPaste(
+        const QModelIndex& index, const QString& text) {
+    const QList<QUrl> urls = clipboardTextToUrls(text);
+    QList<TrackId> trackIds;
+    if (urls.size() == 1 && urls[0].scheme() == "playlist")
+    {
+        int fullPlaylistId = m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().getPlaylistIdFromName(urls[0].path());
+        
+        if (fullPlaylistId != -1) {
+            trackIds = m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().getTrackIds(fullPlaylistId);
+        }
+    }
+    else
+    {
+        // this filters duplicates. do we want that?
+        trackIds = m_pTrackCollectionManager->internalCollection()->resolveTrackIdsFromUrls(urls, false);
+    }
+
+    addTracks(index, trackIds);
+}

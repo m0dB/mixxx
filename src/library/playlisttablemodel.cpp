@@ -173,6 +173,15 @@ int PlaylistTableModel::addTracks(const QModelIndex& index,
     QList<TrackId> trackIds = m_pTrackCollectionManager->internalCollection()->resolveTrackIdsFromLocations(
             locations);
 
+    return addTracks(index, trackIds);
+}
+
+int PlaylistTableModel::addTracks(const QModelIndex& index,
+                                  const QList<TrackId>& trackIds) {
+    if (trackIds.isEmpty()) {
+        return 0;
+    }
+
     const int positionColumn = fieldIndex(ColumnCache::COLUMN_PLAYLISTTRACKSTABLE_POSITION);
     int position = index.sibling(index.row(), positionColumn).data().toInt();
 
@@ -184,9 +193,9 @@ int PlaylistTableModel::addTracks(const QModelIndex& index,
     int tracksAdded = m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().insertTracksIntoPlaylist(
             trackIds, m_iPlaylistId, position);
 
-    if (locations.size() - tracksAdded > 0) {
+    if (trackIds.size() - tracksAdded > 0) {
         qDebug() << "PlaylistTableModel::addTracks could not add"
-                 << locations.size() - tracksAdded
+                 << trackIds.size() - tracksAdded
                  << "to playlist" << m_iPlaylistId;
     }
     return tracksAdded;

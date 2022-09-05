@@ -5,6 +5,8 @@
 #include <QMimeData>
 #include <QUrl>
 #include <QtDebug>
+#include <QApplication>
+#include <QClipboard>
 
 #include "library/sidebarmodel.h"
 #include "moc_wlibrarysidebar.cpp"
@@ -208,6 +210,30 @@ void WLibrarySidebar::keyPressEvent(QKeyEvent* event) {
     //    // encoder click via "GoToItem"
     //    qDebug() << "GoToItem";
     //    TODO(xxx) decide what todo here instead of in librarycontrol
+    } else if(event->matches(QKeySequence::Cut)) {
+        QModelIndexList selectedIndices = selectionModel()->selectedRows();
+        SidebarModel* sidebarModel = qobject_cast<SidebarModel*>(model());
+        if (sidebarModel && !selectedIndices.isEmpty())
+        {
+           sidebarModel->clipboardCut(selectedIndices.back()); 
+        }
+        return;
+    } else if(event->matches(QKeySequence::Copy)) {
+        QModelIndexList selectedIndices = selectionModel()->selectedRows();
+        SidebarModel* sidebarModel = qobject_cast<SidebarModel*>(model());
+        if (sidebarModel && !selectedIndices.isEmpty())
+        {
+            QApplication::clipboard()->setText(sidebarModel->clipboardCopy(selectedIndices.back())); 
+        }
+        return;
+    } else if(event->matches(QKeySequence::Paste)) {
+        QModelIndexList selectedIndices = selectionModel()->selectedRows();
+        SidebarModel* sidebarModel = qobject_cast<SidebarModel*>(model());
+        if (sidebarModel && !selectedIndices.isEmpty())
+        {
+            sidebarModel->clipboardPaste(selectedIndices.back(), QApplication::clipboard()->text()); 
+        }
+        return;
     }
 
     // Fall through to default handler.

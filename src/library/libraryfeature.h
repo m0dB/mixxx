@@ -48,6 +48,31 @@ class LibraryFeature : public QObject {
         Q_UNUSED(pSource);
         return false;
     }
+    virtual void clipboardCut()
+    {
+    }
+    virtual void clipboardCutChild(const QModelIndex& index)
+    {
+        Q_UNUSED(index);
+    }
+    virtual QString clipboardCopy() const
+    {
+        return QString();
+    }
+    virtual QString clipboardCopyChild(const QModelIndex& index) const
+    {
+        Q_UNUSED(index);
+        return QString();
+    }
+    virtual void clipboardPaste(const QString& text)
+    {
+        Q_UNUSED(text);
+    }
+    virtual void clipboardPasteChild(const QModelIndex& index, const QString& text)
+    {
+        Q_UNUSED(index);
+        Q_UNUSED(text);
+    }
     virtual bool dragMoveAccept(const QUrl& url) {
         Q_UNUSED(url);
         return false;

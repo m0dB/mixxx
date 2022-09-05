@@ -226,6 +226,39 @@ void updateTreeItemForTrackSelection(
 
 } // anonymous namespace
 
+void CrateFeature::clipboardPaste(const QString& text) {
+    // TODO consider creating a new crate
+    Q_UNUSED(text);
+}
+
+void CrateFeature::clipboardPasteChild(
+        const QModelIndex& index, const QString& text) {
+    CrateId crateId(crateIdFromIndex(index));
+    VERIFY_OR_DEBUG_ASSERT(crateId.isValid()) {
+        return;
+    }
+    const QList<QUrl> urls = clipboardTextToUrls(text);
+    QList<TrackId> trackIds;
+    if (urls.size() == 1 && urls[0].scheme() == "playlist")
+    {
+        auto& playlistDao = m_pTrackCollection->getPlaylistDAO();
+        int fullPlaylistId = playlistDao.getPlaylistIdFromName(urls[0].path());
+        if (fullPlaylistId != -1) {
+            trackIds = playlistDao.getTrackIds(fullPlaylistId);
+        }
+    }
+    else
+    {
+        trackIds = m_pLibrary->trackCollections()->internalCollection()->resolveTrackIdsFromUrls(urls, false);
+    }
+    if (trackIds.size()) {
+        // m_pTrackCollection->addCrateTracks(crateId, trackIds);
+        m_crateTableModel.addTracks(QModelIndex(), trackIds);
+        emit showTrackModel(&m_crateTableModel);
+    }
+}
+
+
 bool CrateFeature::dropAcceptChild(
         const QModelIndex& index, const QList<QUrl>& urls, QObject* pSource) {
     CrateId crateId(crateIdFromIndex(index));
