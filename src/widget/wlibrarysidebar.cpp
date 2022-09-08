@@ -1,12 +1,12 @@
 #include "widget/wlibrarysidebar.h"
 
+#include <QApplication>
+#include <QClipboard>
 #include <QFileInfo>
 #include <QHeaderView>
 #include <QMimeData>
 #include <QUrl>
 #include <QtDebug>
-#include <QApplication>
-#include <QClipboard>
 
 #include "library/sidebarmodel.h"
 #include "moc_wlibrarysidebar.cpp"
@@ -157,7 +157,6 @@ void WLibrarySidebar::dropEvent(QDropEvent * event) {
     }
 }
 
-
 void WLibrarySidebar::toggleSelectedItem() {
     QModelIndexList selectedIndices = this->selectionModel()->selectedRows();
     if (selectedIndices.size() > 0) {
@@ -210,28 +209,31 @@ void WLibrarySidebar::keyPressEvent(QKeyEvent* event) {
     //    // encoder click via "GoToItem"
     //    qDebug() << "GoToItem";
     //    TODO(xxx) decide what todo here instead of in librarycontrol
-    } else if(event->matches(QKeySequence::Cut)) {
+    } else if (event->matches(QKeySequence::Cut)) {
         QModelIndexList selectedIndices = selectionModel()->selectedRows();
         SidebarModel* sidebarModel = qobject_cast<SidebarModel*>(model());
-        if (sidebarModel && !selectedIndices.isEmpty())
-        {
-           sidebarModel->clipboardCut(selectedIndices.back()); 
+        if (sidebarModel && !selectedIndices.isEmpty()) {
+            QModelIndex index = selectedIndices.at(0);
+            QApplication::clipboard()->setText(sidebarModel->clipboardCut(index));
         }
         return;
-    } else if(event->matches(QKeySequence::Copy)) {
+    } else if (event->matches(QKeySequence::Copy)) {
         QModelIndexList selectedIndices = selectionModel()->selectedRows();
         SidebarModel* sidebarModel = qobject_cast<SidebarModel*>(model());
-        if (sidebarModel && !selectedIndices.isEmpty())
-        {
-            QApplication::clipboard()->setText(sidebarModel->clipboardCopy(selectedIndices.back())); 
+        if (sidebarModel && !selectedIndices.isEmpty()) {
+            QModelIndex index = selectedIndices.at(0);
+            QApplication::clipboard()->setText(sidebarModel->clipboardCopy(index));
         }
         return;
-    } else if(event->matches(QKeySequence::Paste)) {
+    } else if (event->matches(QKeySequence::Paste)) {
         QModelIndexList selectedIndices = selectionModel()->selectedRows();
         SidebarModel* sidebarModel = qobject_cast<SidebarModel*>(model());
-        if (sidebarModel && !selectedIndices.isEmpty())
-        {
-            sidebarModel->clipboardPaste(selectedIndices.back(), QApplication::clipboard()->text()); 
+        if (sidebarModel && !selectedIndices.isEmpty()) {
+            QModelIndex index = selectedIndices.at(0);
+            sidebarModel->clipboardPaste(index, QApplication::clipboard()->text());
+            // force refresh (to show new track count and duration)
+            // TODO (@m0dB) find a clearer way
+            // emit pressed(index);
         }
         return;
     }

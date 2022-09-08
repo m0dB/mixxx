@@ -14,10 +14,10 @@
 #include "library/treeitem.h"
 #include "moc_playlistfeature.cpp"
 #include "sources/soundsourceproxy.h"
+#include "util/clipboardtext.h"
 #include "util/db/dbconnection.h"
 #include "util/dnd.h"
 #include "util/duration.h"
-#include "util/clipboardtext.h"
 #include "widget/wlibrary.h"
 #include "widget/wlibrarysidebar.h"
 #include "widget/wlibrarytextbrowser.h"
@@ -128,13 +128,7 @@ bool PlaylistFeature::dropAcceptChild(
     return m_playlistDao.appendTracksToPlaylist(trackIds, playlistId);
 }
 
-void PlaylistFeature::clipboardCutChild(const QModelIndex& index)
-{
-    // TODO m0dB remove all tracks from the playlist
-}
-
-QString PlaylistFeature::clipboardCopyChild(const QModelIndex& index) const
-{
+QString PlaylistFeature::clipboardCopyChild(const QModelIndex& index) const {
     int playlistId = playlistIdFromIndex(index);
     VERIFY_OR_DEBUG_ASSERT(playlistId >= 0) {
         return QString();
@@ -159,15 +153,12 @@ void PlaylistFeature::clipboardPasteChild(
     }
     const QList<QUrl> urls = clipboardTextToUrls(text);
     QList<TrackId> trackIds;
-    if (urls.size() == 1 && urls[0].scheme() == "playlist")
-    {
+    if (urls.size() == 1 && urls[0].scheme() == "playlist") {
         int fullPlaylistId = m_playlistDao.getPlaylistIdFromName(urls[0].path());
         if (fullPlaylistId != -1) {
             trackIds = m_playlistDao.getTrackIds(fullPlaylistId);
         }
-    }
-    else
-    {
+    } else {
         // this filters duplicates. do we want that?
         trackIds = m_pLibrary->trackCollections()->internalCollection()->resolveTrackIdsFromUrls(urls, false);
     }

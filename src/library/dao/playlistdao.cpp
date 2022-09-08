@@ -166,6 +166,10 @@ int PlaylistDAO::getPlaylistIdFromName(const QString& name) const {
     return -1;
 }
 
+void PlaylistDAO::clearPlaylist(const int playlistId) {
+    removeTracksFromPlaylist(playlistId, 0);
+}
+
 void PlaylistDAO::deletePlaylist(const int playlistId) {
     //qDebug() << "PlaylistDAO::deletePlaylist" << QThread::currentThread() << m_database.connectionName();
     ScopedTransaction transaction(m_database);

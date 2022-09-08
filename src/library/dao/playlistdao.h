@@ -53,6 +53,8 @@ class PlaylistDAO : public QObject, public virtual DAO {
     int createPlaylist(const QString& name, const HiddenType type = PLHT_NOT_HIDDEN);
     // Create a playlist, appends "(n)" if already exists, name becomes the new name
     int createUniquePlaylist(QString* pName, const HiddenType type = PLHT_NOT_HIDDEN);
+    // Clear a playlist
+    void clearPlaylist(const int playlistId);
     // Delete a playlist
     void deletePlaylist(const int playlistId);
     // Rename a playlist

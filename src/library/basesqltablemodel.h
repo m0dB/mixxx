@@ -70,8 +70,8 @@ class BaseSqlTableModel : public BaseTrackTableModel {
     ///////////////////////////////////////////////////////////////////////////
     int fieldIndex(
             ColumnCache::Column column) const final;
-    
-    void clipboardCut(const QModelIndexList& indices) override;
+
+    QString clipboardCut(const QModelIndexList& indices) override;
     QString clipboardCopy(const QModelIndexList& indices) const override;
     void clipboardPaste(const QModelIndex& index, const QString& text) override;
 

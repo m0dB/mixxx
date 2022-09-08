@@ -32,7 +32,7 @@ class SidebarModel : public QAbstractItemModel {
     int columnCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index,
                   int role = Qt::DisplayRole) const override;
-    void clipboardCut(const QModelIndex& index);
+    QString clipboardCut(const QModelIndex& index);
     QString clipboardCopy(const QModelIndex& index) const;
     void clipboardPaste(const QModelIndex& index, const QString& text);
     bool dropAccept(const QModelIndex& index, const QList<QUrl>& urls, QObject* pSource);

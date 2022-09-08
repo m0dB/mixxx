@@ -138,17 +138,15 @@ class TrackModel {
     virtual void purgeTracks(const QModelIndexList& indices) {
         Q_UNUSED(indices);
     }
-    virtual void clipboardCut(const QModelIndexList& indices)
-    {
-        Q_UNUSED(indices);
-    }
-    virtual QString clipboardCopy(const QModelIndexList& indices) const
-    {
+    virtual QString clipboardCut(const QModelIndexList& indices) {
         Q_UNUSED(indices);
         return QString();
     }
-    virtual void clipboardPaste(const QModelIndex& index, const QString& text)
-    {
+    virtual QString clipboardCopy(const QModelIndexList& indices) const {
+        Q_UNUSED(indices);
+        return QString();
+    }
+    virtual void clipboardPaste(const QModelIndex& index, const QString& text) {
         Q_UNUSED(index);
         Q_UNUSED(text);
     }

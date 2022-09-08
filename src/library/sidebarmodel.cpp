@@ -353,36 +353,35 @@ bool SidebarModel::dropAccept(const QModelIndex& index, const QList<QUrl>& urls,
     return result;
 }
 
-void SidebarModel::clipboardCut(const QModelIndex& index)
-{
-    if (index.internalPointer() == this) {
-        m_sFeatures[index.row()]->clipboardCut();
-    } else {
-        TreeItem* tree_item = (TreeItem*)index.internalPointer();
-        if (tree_item) {
-            LibraryFeature* feature = tree_item->feature();
-            feature->clipboardCutChild(index);
-        }
-    }
-}
-
-QString SidebarModel::clipboardCopy(const QModelIndex& index) const
-{
+QString SidebarModel::clipboardCut(const QModelIndex& index) {
     QString result;
     if (index.internalPointer() == this) {
-        return m_sFeatures[index.row()]->clipboardCopy();
+        result = m_sFeatures[index.row()]->clipboardCut();
     } else {
         TreeItem* tree_item = (TreeItem*)index.internalPointer();
         if (tree_item) {
             LibraryFeature* feature = tree_item->feature();
-            return feature->clipboardCopyChild(index);
+            result = feature->clipboardCutChild(index);
         }
     }
     return result;
 }
 
-void SidebarModel::clipboardPaste(const QModelIndex& index, const QString& text)
-{
+QString SidebarModel::clipboardCopy(const QModelIndex& index) const {
+    QString result;
+    if (index.internalPointer() == this) {
+        result = m_sFeatures[index.row()]->clipboardCopy();
+    } else {
+        TreeItem* tree_item = (TreeItem*)index.internalPointer();
+        if (tree_item) {
+            LibraryFeature* feature = tree_item->feature();
+            result = feature->clipboardCopyChild(index);
+        }
+    }
+    return result;
+}
+
+void SidebarModel::clipboardPaste(const QModelIndex& index, const QString& text) {
     if (index.internalPointer() == this) {
         m_sFeatures[index.row()]->clipboardPaste(text);
     } else {

@@ -1,11 +1,11 @@
 #include "widget/wtracktableview.h"
 
+#include <QClipboard>
 #include <QDrag>
 #include <QModelIndex>
 #include <QScrollBar>
 #include <QShortcut>
 #include <QUrl>
-#include <QClipboard>
 
 #include "control/controlobject.h"
 #include "library/dao/trackschema.h"
@@ -573,7 +573,6 @@ void WTrackTableView::dropEvent(QDropEvent * event) {
     // up to the top, which is confusing when you're dragging and dropping. :)
     int vScrollBarPos = verticalScrollBar()->value();
 
-
     // Calculate the model index where the track or tracks are destined to go.
     // (the "drop" position in a drag-and-drop)
     // The user usually drops on the seam between two rows.
@@ -675,7 +674,6 @@ void WTrackTableView::dropEvent(QDropEvent * event) {
             }
         }
 
-
         // Highlight the moved rows again (restoring the selection)
         //QModelIndex newSelectedIndex = destIndex;
         for (int i = 0; i < selectedRowCount; i++) {
@@ -752,18 +750,15 @@ void WTrackTableView::keyPressEvent(QKeyEvent* event) {
         // causes a track to load since we allow in-line editing
         // of table items in general
         return;
-    }
-    else if (event->matches(QKeySequence::Cut))
-    {
+    } else if (event->matches(QKeySequence::Cut)) {
         TrackModel* trackModel = getTrackModel();
         if (!trackModel || trackModel->isLocked()) {
             return;
         }
-        
+
         const QModelIndexList indices = selectionModel()->selectedRows();
-        trackModel->clipboardCut(indices);
-    }         
-    else if(event->matches(QKeySequence::Copy)){
+        QApplication::clipboard()->setText(trackModel->clipboardCut(indices));
+    } else if (event->matches(QKeySequence::Copy)) {
         TrackModel* trackModel = getTrackModel();
         if (!trackModel || trackModel->isLocked()) {
             return;
@@ -771,8 +766,8 @@ void WTrackTableView::keyPressEvent(QKeyEvent* event) {
 
         const QModelIndexList indices = selectionModel()->selectedRows();
         QApplication::clipboard()->setText(trackModel->clipboardCopy(indices));
-    }
-    else if(event->matches(QKeySequence::Paste)) {
+    } else if (event->matches(QKeySequence::Paste)) {
+        std::cerr << "TRACKTABLE PASTE" << std::endl;
         TrackModel* trackModel = getTrackModel();
         if (!trackModel || trackModel->isLocked()) {
             return;
@@ -781,7 +776,11 @@ void WTrackTableView::keyPressEvent(QKeyEvent* event) {
         QModelIndex destIndex;
         if (!indices.empty())
         {
-            destIndex = indices.last();
+            destIndex = indices.at(0);
+            for (auto index : indices) {
+                if (index.row() > destIndex.row())
+                    destIndex = index;
+            }
             destIndex = destIndex.siblingAtRow(destIndex.row() + 1);
         }
         trackModel->clipboardPaste(destIndex, QApplication::clipboard()->text());
