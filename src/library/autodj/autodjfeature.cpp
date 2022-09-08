@@ -17,8 +17,8 @@
 #include "moc_autodjfeature.cpp"
 #include "sources/soundsourceproxy.h"
 #include "track/track.h"
+#include "util/clipboard.h"
 #include "util/compatibility.h"
-#include "util/clipboardtext.h"
 #include "util/dnd.h"
 #include "widget/wlibrary.h"
 #include "widget/wlibrarysidebar.h"
@@ -169,23 +169,25 @@ void AutoDJFeature::activate() {
     emit enableCoverArtDisplay(true);
 }
 
-void AutoDJFeature::clipboardPaste(const QString& text) {
-    const QList<QUrl> urls = clipboardTextToUrls(text);
-    QList<TrackId> trackIds;
+void AutoDJFeature::shortkeyPaste() {
+    const QList<QUrl> urls = Clipboard::urls();
+    const auto loc = PlaylistDAO::AutoDJSendLoc::BOTTOM;
     if (urls.size() == 1 && urls[0].scheme() == "playlist")
     {
-        int fullPlaylistId = m_playlistDao.getPlaylistIdFromName(urls[0].path());
-        if (fullPlaylistId != -1) {
-            trackIds = m_playlistDao.getTrackIds(fullPlaylistId);
+        const int fromPlaylistId = m_playlistDao.getPlaylistIdFromName(urls[0].path());
+        if (fromPlaylistId != -1) {
+            m_playlistDao.addPlaylistToAutoDJQueue(fromPlaylistId, loc);
         }
     }
     else
     {
-        // this filters duplicates. do we want that?
-        trackIds = m_pLibrary->trackCollections()->internalCollection()->resolveTrackIdsFromUrls(urls, false);
-    }
-    if (trackIds.size()) {
-        m_playlistDao.appendTracksToPlaylist(trackIds, m_iAutoDJPlaylistId);
+        const QList<TrackId> trackIds =
+                m_pLibrary->trackCollections()
+                        ->internalCollection()
+                        ->resolveTrackIdsFromUrls(urls, false);
+        if (!trackIds.isEmpty()) {
+            m_playlistDao.addTracksToAutoDJQueue(trackIds, loc);
+        }
     }
 }
 

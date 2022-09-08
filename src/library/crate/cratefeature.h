@@ -30,9 +30,9 @@ class CrateFeature : public BaseTrackSetFeature {
 
     QVariant title() override;
     QIcon getIcon() override;
-    
-    void clipboardPaste(const QString& text) override;
-    void clipboardPasteChild(const QModelIndex& index, const QString& text) override;
+
+    void shortkeyPaste() override;
+    void shortkeyPasteChild(const QModelIndex& index) override;
 
     bool dropAcceptChild(const QModelIndex& index,
             const QList<QUrl>& urls,

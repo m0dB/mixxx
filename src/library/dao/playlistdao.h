@@ -63,6 +63,8 @@ class PlaylistDAO : public QObject, public virtual DAO {
     bool setPlaylistLocked(const int playlistId, const bool locked);
     // Find out the state of a playlist lock
     bool isPlaylistLocked(const int playlistId) const;
+    // Append all tracks in a playlist to another playlist
+    bool appendPlaylistToPlaylist(const int fromPlaylistId, const int playlistId);
     // Append a list of tracks to a playlist
     bool appendTracksToPlaylist(const QList<TrackId>& trackIds, const int playlistId);
     // Append a track to a playlist

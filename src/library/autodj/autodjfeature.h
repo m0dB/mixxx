@@ -41,7 +41,7 @@ class AutoDJFeature : public LibraryFeature {
     QVariant title() override;
     QIcon getIcon() override;
 
-    void clipboardPaste(const QString& text) override;
+    void shortkeyPaste() override;
 
     bool dropAccept(const QList<QUrl>& urls, QObject* pSource) override;
     bool dragMoveAccept(const QUrl& url) override;

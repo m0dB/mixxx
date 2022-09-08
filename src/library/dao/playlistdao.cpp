@@ -271,6 +271,26 @@ bool PlaylistDAO::removeTracksFromPlaylist(int playlistId, int startIndex) {
     return true;
 }
 
+bool PlaylistDAO::appendPlaylistToPlaylist(const int fromPlaylistId, const int playlistId) {
+    // Query the PlaylistTracks database to locate tracks in the selected
+    // playlist. Tracks are automatically sorted by position.
+    QSqlQuery query(m_database);
+    query.prepare(
+            "SELECT track_id FROM PlaylistTracks "
+            "WHERE playlist_id = :plid ORDER BY position ASC");
+    query.bindValue(":plid", fromPlaylistId);
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return false;
+    }
+
+    QList<TrackId> trackIds;
+    while (query.next()) {
+        trackIds.append(TrackId(query.value(0)));
+    }
+    return appendTracksToPlaylist(trackIds, playlistId);
+}
+
 bool PlaylistDAO::appendTracksToPlaylist(const QList<TrackId>& trackIds, const int playlistId) {
     // qDebug() << "PlaylistDAO::appendTracksToPlaylist"
     //          << QThread::currentThread() << m_database.connectionName();

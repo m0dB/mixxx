@@ -834,37 +834,33 @@ QList<TrackRef> BaseSqlTableModel::getTrackRefs(
     return trackRefs;
 }
 
-QString BaseSqlTableModel::clipboardCut(const QModelIndexList& indices) {
-    QString result = clipboardCopy(indices);
+void BaseSqlTableModel::shortkeyCut(const QModelIndexList& indices) {
+    shortkeyCopy(indices);
     removeTracks(indices);
-    return result;
 }
 
-QString BaseSqlTableModel::clipboardCopy(const QModelIndexList& indices) const {
-    QString text;
+void BaseSqlTableModel::shortkeyCopy(const QModelIndexList& indices) const {
+    Clipboard::begin();
     for (const QModelIndex& index : indices) {
         if (index.isValid()) {
-            QUrl url = QUrl::fromLocalFile(getTrackLocation(index));
-            text += url.toString() + "\n";
+            Clipboard::add(QUrl::fromLocalFile(getTrackLocation(index)));
         }
     }
-    return text;
+    Clipboard::end();
 }
 
-void BaseSqlTableModel::clipboardPaste(
-        const QModelIndex& index, const QString& text) {
-    const QList<QUrl> urls = clipboardTextToUrls(text);
+void BaseSqlTableModel::shortkeyPaste(const QModelIndex& index) {
+    const QList<QUrl> urls = Clipboard::urls();
     QList<TrackId> trackIds;
     if (urls.size() == 1 && urls[0].scheme() == "playlist") {
         int fullPlaylistId = m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().getPlaylistIdFromName(urls[0].path());
-
         if (fullPlaylistId != -1) {
             trackIds = m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().getTrackIds(fullPlaylistId);
         }
     } else {
-        // this filters duplicates. do we want that?
         trackIds = m_pTrackCollectionManager->internalCollection()->resolveTrackIdsFromUrls(urls, false);
     }
-
-    addTracks(index, trackIds);
+    if (!trackIds.isEmpty()) {
+        addTracks(index, trackIds);
+    }
 }

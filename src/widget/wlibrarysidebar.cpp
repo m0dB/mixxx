@@ -1,7 +1,5 @@
 #include "widget/wlibrarysidebar.h"
 
-#include <QApplication>
-#include <QClipboard>
 #include <QFileInfo>
 #include <QHeaderView>
 #include <QMimeData>
@@ -214,7 +212,7 @@ void WLibrarySidebar::keyPressEvent(QKeyEvent* event) {
         SidebarModel* sidebarModel = qobject_cast<SidebarModel*>(model());
         if (sidebarModel && !selectedIndices.isEmpty()) {
             QModelIndex index = selectedIndices.at(0);
-            QApplication::clipboard()->setText(sidebarModel->clipboardCut(index));
+            sidebarModel->shortkeyCut(index);
         }
         return;
     } else if (event->matches(QKeySequence::Copy)) {
@@ -222,7 +220,7 @@ void WLibrarySidebar::keyPressEvent(QKeyEvent* event) {
         SidebarModel* sidebarModel = qobject_cast<SidebarModel*>(model());
         if (sidebarModel && !selectedIndices.isEmpty()) {
             QModelIndex index = selectedIndices.at(0);
-            QApplication::clipboard()->setText(sidebarModel->clipboardCopy(index));
+            sidebarModel->shortkeyCopy(index);
         }
         return;
     } else if (event->matches(QKeySequence::Paste)) {
@@ -230,10 +228,7 @@ void WLibrarySidebar::keyPressEvent(QKeyEvent* event) {
         SidebarModel* sidebarModel = qobject_cast<SidebarModel*>(model());
         if (sidebarModel && !selectedIndices.isEmpty()) {
             QModelIndex index = selectedIndices.at(0);
-            sidebarModel->clipboardPaste(index, QApplication::clipboard()->text());
-            // force refresh (to show new track count and duration)
-            // TODO (@m0dB) find a clearer way
-            // emit pressed(index);
+            sidebarModel->shortkeyPaste(index);
         }
         return;
     }

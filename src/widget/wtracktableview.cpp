@@ -1,6 +1,5 @@
 #include "widget/wtracktableview.h"
 
-#include <QClipboard>
 #include <QDrag>
 #include <QModelIndex>
 #include <QScrollBar>
@@ -757,7 +756,7 @@ void WTrackTableView::keyPressEvent(QKeyEvent* event) {
         }
 
         const QModelIndexList indices = selectionModel()->selectedRows();
-        QApplication::clipboard()->setText(trackModel->clipboardCut(indices));
+        trackModel->shortkeyCut(indices);
     } else if (event->matches(QKeySequence::Copy)) {
         TrackModel* trackModel = getTrackModel();
         if (!trackModel || trackModel->isLocked()) {
@@ -765,9 +764,8 @@ void WTrackTableView::keyPressEvent(QKeyEvent* event) {
         }
 
         const QModelIndexList indices = selectionModel()->selectedRows();
-        QApplication::clipboard()->setText(trackModel->clipboardCopy(indices));
+        trackModel->shortkeyCopy(indices);
     } else if (event->matches(QKeySequence::Paste)) {
-        std::cerr << "TRACKTABLE PASTE" << std::endl;
         TrackModel* trackModel = getTrackModel();
         if (!trackModel || trackModel->isLocked()) {
             return;
@@ -783,7 +781,7 @@ void WTrackTableView::keyPressEvent(QKeyEvent* event) {
             }
             destIndex = destIndex.siblingAtRow(destIndex.row() + 1);
         }
-        trackModel->clipboardPaste(destIndex, QApplication::clipboard()->text());
+        trackModel->shortkeyPaste(destIndex);
     } else {
         QTableView::keyPressEvent(event);
     }

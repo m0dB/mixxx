@@ -9,7 +9,7 @@
 #include "library/dao/settingsdao.h"
 #include "track/track_decl.h"
 #include "track/trackref.h"
-#include "util/clipboardtext.h"
+#include "util/clipboard.h"
 
 /** Pure virtual (abstract) class that provides an interface for data models which
     display track lists. */
@@ -138,17 +138,14 @@ class TrackModel {
     virtual void purgeTracks(const QModelIndexList& indices) {
         Q_UNUSED(indices);
     }
-    virtual QString clipboardCut(const QModelIndexList& indices) {
+    virtual void shortkeyCut(const QModelIndexList& indices) {
         Q_UNUSED(indices);
-        return QString();
     }
-    virtual QString clipboardCopy(const QModelIndexList& indices) const {
+    virtual void shortkeyCopy(const QModelIndexList& indices) const {
         Q_UNUSED(indices);
-        return QString();
     }
-    virtual void clipboardPaste(const QModelIndex& index, const QString& text) {
+    virtual void shortkeyPaste(const QModelIndex& index) {
         Q_UNUSED(index);
-        Q_UNUSED(text);
     }
     virtual int addTracks(const QModelIndex& index, const QList<QString>& locations) {
         Q_UNUSED(index);

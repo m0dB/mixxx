@@ -28,9 +28,9 @@ class PlaylistFeature : public BasePlaylistFeature {
 
     void bindSidebarWidget(WLibrarySidebar* pSidebarWidget) override;
 
-    QString clipboardCopyChild(const QModelIndex& index) const override;
-    void clipboardPaste(const QString& text) override;
-    void clipboardPasteChild(const QModelIndex& index, const QString& text) override;
+    void shortkeyCopyChild(const QModelIndex& index) const override;
+    void shortkeyPaste() override;
+    void shortkeyPasteChild(const QModelIndex& index) override;
 
     bool dropAcceptChild(const QModelIndex& index,
             const QList<QUrl>& urls,

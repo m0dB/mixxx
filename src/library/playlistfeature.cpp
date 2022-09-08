@@ -14,7 +14,7 @@
 #include "library/treeitem.h"
 #include "moc_playlistfeature.cpp"
 #include "sources/soundsourceproxy.h"
-#include "util/clipboardtext.h"
+#include "util/clipboard.h"
 #include "util/db/dbconnection.h"
 #include "util/dnd.h"
 #include "util/duration.h"
@@ -128,42 +128,47 @@ bool PlaylistFeature::dropAcceptChild(
     return m_playlistDao.appendTracksToPlaylist(trackIds, playlistId);
 }
 
-QString PlaylistFeature::clipboardCopyChild(const QModelIndex& index) const {
-    int playlistId = playlistIdFromIndex(index);
-    VERIFY_OR_DEBUG_ASSERT(playlistId >= 0) {
-        return QString();
-    }
-    QUrl url;
-    url.setPath(m_playlistDao.getPlaylistName(playlistId));
-    url.setScheme("playlist");
-    QString string = url.toString();
-    return string;
-}
-
-void PlaylistFeature::clipboardPaste(const QString& text) {
-    // consider creating a new playlist
-    Q_UNUSED(text);
-}
-
-void PlaylistFeature::clipboardPasteChild(
-        const QModelIndex& index, const QString& text) {
+void PlaylistFeature::shortkeyCopyChild(const QModelIndex& index) const {
     int playlistId = playlistIdFromIndex(index);
     VERIFY_OR_DEBUG_ASSERT(playlistId >= 0) {
         return;
     }
-    const QList<QUrl> urls = clipboardTextToUrls(text);
+    QUrl url;
+    url.setPath(m_playlistDao.getPlaylistName(playlistId));
+    url.setScheme("playlist");
+    Clipboard::begin();
+    Clipboard::add(url);
+    Clipboard::end();
+}
+
+void PlaylistFeature::shortkeyPaste() {
+    // TODO (m0dB) consider creating a new playlist
+}
+
+void PlaylistFeature::shortkeyPasteChild(
+        const QModelIndex& index) {
+    const int playlistId = playlistIdFromIndex(index);
+    VERIFY_OR_DEBUG_ASSERT(playlistId >= 0) {
+        return;
+    }
+    const QList<QUrl> urls = Clipboard::urls();
     QList<TrackId> trackIds;
     if (urls.size() == 1 && urls[0].scheme() == "playlist") {
-        int fullPlaylistId = m_playlistDao.getPlaylistIdFromName(urls[0].path());
-        if (fullPlaylistId != -1) {
-            trackIds = m_playlistDao.getTrackIds(fullPlaylistId);
+        int fromPlaylistId = m_playlistDao.getPlaylistIdFromName(urls[0].path());
+        if (fromPlaylistId != -1) {
+            m_playlistDao.appendPlaylistToPlaylist(fromPlaylistId, playlistId);
+            activateChild(index);
         }
     } else {
         // this filters duplicates. do we want that?
-        trackIds = m_pLibrary->trackCollections()->internalCollection()->resolveTrackIdsFromUrls(urls, false);
-    }
-    if (trackIds.size()) {
-        m_playlistDao.appendTracksToPlaylist(trackIds, playlistId);
+        const QList<TrackId> trackIds =
+                m_pLibrary->trackCollections()
+                        ->internalCollection()
+                        ->resolveTrackIdsFromUrls(urls, false);
+        if (!trackIds.isEmpty()) {
+            m_playlistDao.appendTracksToPlaylist(trackIds, playlistId);
+            activateChild(index);
+        }
     }
 }
 

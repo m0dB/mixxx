@@ -226,18 +226,16 @@ void updateTreeItemForTrackSelection(
 
 } // anonymous namespace
 
-void CrateFeature::clipboardPaste(const QString& text) {
-    // TODO consider creating a new crate
-    Q_UNUSED(text);
+void CrateFeature::shortkeyPaste() {
+    // TODO (m0dB) consider creating a new crate
 }
 
-void CrateFeature::clipboardPasteChild(
-        const QModelIndex& index, const QString& text) {
+void CrateFeature::shortkeyPasteChild(const QModelIndex& index) {
     CrateId crateId(crateIdFromIndex(index));
     VERIFY_OR_DEBUG_ASSERT(crateId.isValid()) {
         return;
     }
-    const QList<QUrl> urls = clipboardTextToUrls(text);
+    const QList<QUrl> urls = Clipboard::urls();
     QList<TrackId> trackIds;
     if (urls.size() == 1 && urls[0].scheme() == "playlist")
     {
@@ -257,7 +255,6 @@ void CrateFeature::clipboardPasteChild(
         emit showTrackModel(&m_crateTableModel);
     }
 }
-
 
 bool CrateFeature::dropAcceptChild(
         const QModelIndex& index, const QList<QUrl>& urls, QObject* pSource) {

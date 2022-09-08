@@ -48,26 +48,20 @@ class LibraryFeature : public QObject {
         Q_UNUSED(pSource);
         return false;
     }
-    virtual QString clipboardCut() {
-        return QString();
+    virtual void shortkeyCut() {
     }
-    virtual QString clipboardCutChild(const QModelIndex& index) {
+    virtual void shortkeyCutChild(const QModelIndex& index) {
         Q_UNUSED(index);
-        return QString();
     }
-    virtual QString clipboardCopy() const {
-        return QString();
+    virtual void shortkeyCopy() const {
     }
-    virtual QString clipboardCopyChild(const QModelIndex& index) const {
+    virtual void shortkeyCopyChild(const QModelIndex& index) const {
         Q_UNUSED(index);
-        return QString();
     }
-    virtual void clipboardPaste(const QString& text) {
-        Q_UNUSED(text);
+    virtual void shortkeyPaste() {
     }
-    virtual void clipboardPasteChild(const QModelIndex& index, const QString& text) {
+    virtual void shortkeyPasteChild(const QModelIndex& index) {
         Q_UNUSED(index);
-        Q_UNUSED(text);
     }
     virtual bool dragMoveAccept(const QUrl& url) {
         Q_UNUSED(url);
