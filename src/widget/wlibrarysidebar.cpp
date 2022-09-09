@@ -207,6 +207,21 @@ void WLibrarySidebar::keyPressEvent(QKeyEvent* event) {
     //    // encoder click via "GoToItem"
     //    qDebug() << "GoToItem";
     //    TODO(xxx) decide what todo here instead of in librarycontrol
+    } else if (event->matches(QKeySequence::Delete) || event->key() == Qt::Key_Backspace) {
+        QModelIndexList selectedIndices = selectionModel()->selectedRows();
+        SidebarModel* sidebarModel = qobject_cast<SidebarModel*>(model());
+        if (sidebarModel && !selectedIndices.isEmpty()) {
+            QModelIndex index = selectedIndices.at(0);
+            sidebarModel->shortkeyDelete(index);
+        }
+    } else if (event->matches(QKeySequence::Cut)) {
+        QModelIndexList selectedIndices = selectionModel()->selectedRows();
+        SidebarModel* sidebarModel = qobject_cast<SidebarModel*>(model());
+        if (sidebarModel && !selectedIndices.isEmpty()) {
+            QModelIndex index = selectedIndices.at(0);
+            sidebarModel->shortkeyCut(index);
+        }
+        return;
     } else if (event->matches(QKeySequence::Cut)) {
         QModelIndexList selectedIndices = selectionModel()->selectedRows();
         SidebarModel* sidebarModel = qobject_cast<SidebarModel*>(model());

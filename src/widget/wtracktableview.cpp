@@ -749,6 +749,14 @@ void WTrackTableView::keyPressEvent(QKeyEvent* event) {
         // causes a track to load since we allow in-line editing
         // of table items in general
         return;
+    } else if (event->matches(QKeySequence::Delete) || event->key() == Qt::Key_Backspace) {
+        TrackModel* trackModel = getTrackModel();
+        if (!trackModel || trackModel->isLocked()) {
+            return;
+        }
+
+        const QModelIndexList indices = selectionModel()->selectedRows();
+        trackModel->shortkeyDelete(indices);
     } else if (event->matches(QKeySequence::Cut)) {
         TrackModel* trackModel = getTrackModel();
         if (!trackModel || trackModel->isLocked()) {

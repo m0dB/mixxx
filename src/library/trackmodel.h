@@ -138,6 +138,9 @@ class TrackModel {
     virtual void purgeTracks(const QModelIndexList& indices) {
         Q_UNUSED(indices);
     }
+    virtual void shortkeyDelete(const QModelIndexList& indices) {
+        Q_UNUSED(indices);
+    }
     virtual void shortkeyCut(const QModelIndexList& indices) {
         Q_UNUSED(indices);
     }

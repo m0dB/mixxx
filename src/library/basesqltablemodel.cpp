@@ -834,6 +834,10 @@ QList<TrackRef> BaseSqlTableModel::getTrackRefs(
     return trackRefs;
 }
 
+void BaseSqlTableModel::shortkeyDelete(const QModelIndexList& indices) {
+    removeTracks(indices);
+}
+
 void BaseSqlTableModel::shortkeyCut(const QModelIndexList& indices) {
     shortkeyCopy(indices);
     removeTracks(indices);

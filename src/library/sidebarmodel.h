@@ -32,6 +32,7 @@ class SidebarModel : public QAbstractItemModel {
     int columnCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index,
                   int role = Qt::DisplayRole) const override;
+    void shortkeyDelete(const QModelIndex& index);
     void shortkeyCut(const QModelIndex& index);
     void shortkeyCopy(const QModelIndex& index) const;
     void shortkeyPaste(const QModelIndex& index);

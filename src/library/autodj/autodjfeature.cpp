@@ -169,6 +169,10 @@ void AutoDJFeature::activate() {
     emit enableCoverArtDisplay(true);
 }
 
+void AutoDJFeature::shortkeyDelete() {
+    m_playlistDao.clearAutoDJQueue();
+}
+
 void AutoDJFeature::shortkeyPaste() {
     const QList<QUrl> urls = Clipboard::urls();
     const auto loc = PlaylistDAO::AutoDJSendLoc::BOTTOM;

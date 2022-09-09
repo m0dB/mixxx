@@ -71,6 +71,7 @@ class BaseSqlTableModel : public BaseTrackTableModel {
     int fieldIndex(
             ColumnCache::Column column) const final;
 
+    void shortkeyDelete(const QModelIndexList& indices) override;
     void shortkeyCut(const QModelIndexList& indices) override;
     void shortkeyCopy(const QModelIndexList& indices) const override;
     void shortkeyPaste(const QModelIndex& index) override;
