@@ -1,7 +1,7 @@
 #include "mixxxapplication.h"
 
+#include <QMouseEvent>
 #include <QThreadPool>
-#include <QTouchEvent>
 #include <QtDebug>
 
 #include "audio/types.h"
@@ -113,17 +113,17 @@ bool MixxxApplication::notify(QObject* target, QEvent* event) {
     switch (event->type()) {
     case QEvent::MouseButtonPress: {
         QMouseEventEditable* mouseEvent = static_cast<QMouseEventEditable*>(event);
-        if (mouseEvent->source() == Qt::MouseEventSynthesizedByQt &&
-                mouseEvent->button() == Qt::LeftButton &&
-                touchIsRightButton()) {
-            // Assert the assumption that QT synthesizes only one click at a time
-            // = two events (see above)
-            VERIFY_OR_DEBUG_ASSERT(m_rightPressedButtons < 2) {
-                break;
-            }
-            mouseEvent->setButton(Qt::RightButton);
-            m_rightPressedButtons++;
-        }
+//        if (mouseEvent->source() == Qt::MouseEventSynthesizedByQt &&
+//                mouseEvent->button() == Qt::LeftButton &&
+//                touchIsRightButton()) {
+//            // Assert the assumption that QT synthesizes only one click at a time
+//            // = two events (see above)
+//            VERIFY_OR_DEBUG_ASSERT(m_rightPressedButtons < 2) {
+//                break;
+//            }
+//            mouseEvent->setButton(Qt::RightButton);
+//            m_rightPressedButtons++;
+//        }
 #if QT_VERSION <= QT_VERSION_CHECK(5, 12, 4) && defined(__APPLE__)
         if (mouseEvent->button() == Qt::RightButton && mouseEvent->buttons() == Qt::LeftButton) {
             // Workaround for a bug in Qt 5.12 qnsview_mouse.mm, where the wrong value is
@@ -139,13 +139,13 @@ bool MixxxApplication::notify(QObject* target, QEvent* event) {
         break;
     }
     case QEvent::MouseButtonRelease: {
-        QMouseEventEditable* mouseEvent = static_cast<QMouseEventEditable*>(event);
-        if (mouseEvent->source() == Qt::MouseEventSynthesizedByQt &&
-                mouseEvent->button() == Qt::LeftButton &&
-                m_rightPressedButtons > 0) {
-            mouseEvent->setButton(Qt::RightButton);
-            m_rightPressedButtons--;
-        }
+        //        QMouseEventEditable* mouseEvent = static_cast<QMouseEventEditable*>(event);
+        //        if (mouseEvent->source() == Qt::MouseEventSynthesizedByQt &&
+        //                mouseEvent->button() == Qt::LeftButton &&
+        //                m_rightPressedButtons > 0) {
+        //            mouseEvent->setButton(Qt::RightButton);
+        //            m_rightPressedButtons--;
+        //        }
         break;
     }
     default:

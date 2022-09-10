@@ -6,7 +6,7 @@
 #include <QPixmap>
 #include <QStyleOption>
 #include <QStylePainter>
-#include <QTouchEvent>
+//#include <QTouchEvent>
 #include <QtDebug>
 
 #include "control/controlbehavior.h"
