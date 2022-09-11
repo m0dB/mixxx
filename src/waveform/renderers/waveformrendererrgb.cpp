@@ -20,8 +20,25 @@ WaveformRendererRGB::~WaveformRendererRGB() {
 void WaveformRendererRGB::onSetup(const QDomNode& /* node */) {
 }
 
+inline float math_pow2(float x) {
+    return x * x;
+}
+
 void WaveformRendererRGB::draw(QPainter* painter,
                                           QPaintEvent* /*event*/) {
+    static float float256table[256];
+    static float sqrtftable[255 * 255 * 3 + 1];
+    static bool float256tableInitialized = false;
+    if (!float256tableInitialized) {
+        for (int i = 0; i < 256; i++) {
+            float256table[i] = static_cast<float>(i);
+        }
+        for (int i = 0; i < 255 * 255 * 3 + 1; i++) {
+            sqrtftable[i] = sqrtf(static_cast<float>(i));
+        }
+        float256tableInitialized = true;
+    }
+
     const TrackPointer trackInfo = m_waveformRenderer->getTrackInfo();
     if (!trackInfo) {
         return;
@@ -82,19 +99,16 @@ void WaveformRendererRGB::draw(QPainter* painter,
     painter->setPen(m_pColors->getAxesColor());
     painter->drawLine(QLineF(0, halfBreadth, m_waveformRenderer->getLength(), halfBreadth));
 
-    for (int x = 0; x < m_waveformRenderer->getLength(); ++x) {
-        // Width of the x position in visual indices.
-        const double xSampleWidth = gain * x;
+    double xVisualSampleIndex = offset;
 
-        // Effective visual index of x
-        const double xVisualSampleIndex = xSampleWidth + offset;
-
+    const double maxSamplingRange = gain / 2.0;
+    const int n = m_waveformRenderer->getLength();
+    for (int x = 0; x < n; ++x) {
         // Our current pixel (x) corresponds to a number of visual samples
         // (visualSamplerPerPixel) in our waveform object. We take the max of
         // all the data points on either side of xVisualSampleIndex within a
         // window of 'maxSamplingRange' visual samples to measure the maximum
         // data point contained by this pixel.
-        double maxSamplingRange = gain / 2.0;
 
         // Since xVisualSampleIndex is in visual-samples (e.g. R,L,R,L) we want
         // to check +/- maxSamplingRange frames, not samples. To do this, divide
@@ -127,53 +141,76 @@ void WaveformRendererRGB::draw(QPainter* painter,
             maxLow  = math_max3(maxLow,  waveformData.filtered.low,  waveformDataNext.filtered.low);
             maxMid  = math_max3(maxMid,  waveformData.filtered.mid,  waveformDataNext.filtered.mid);
             maxHigh = math_max3(maxHigh, waveformData.filtered.high, waveformDataNext.filtered.high);
-            float all = static_cast<float>(pow(waveformData.filtered.low * lowGain, 2) +
-                    pow(waveformData.filtered.mid * midGain, 2) +
-                    pow(waveformData.filtered.high * highGain, 2));
+            float all = math_pow2(float256table[waveformData.filtered.low] * lowGain) +
+                    math_pow2(float256table[waveformData.filtered.mid] * midGain) +
+                    math_pow2(float256table[waveformData.filtered.high] * highGain);
             maxAll = math_max(maxAll, all);
-            float allNext = static_cast<float>(pow(waveformDataNext.filtered.low * lowGain, 2) +
-                    pow(waveformDataNext.filtered.mid * midGain, 2) +
-                    pow(waveformDataNext.filtered.high * highGain, 2));
+            float allNext = math_pow2(float256table[waveformDataNext.filtered.low] * lowGain) +
+                    math_pow2(float256table[waveformDataNext.filtered.mid] * midGain) +
+                    math_pow2(float256table[waveformDataNext.filtered.high] * highGain);
             maxAllNext = math_max(maxAllNext, allNext);
         }
 
-        qreal maxLowF = maxLow * lowGain;
-        qreal maxMidF = maxMid * midGain;
-        qreal maxHighF = maxHigh * highGain;
+        float maxLowF = float256table[maxLow] * lowGain;
+        float maxMidF = float256table[maxMid] * midGain;
+        float maxHighF = float256table[maxHigh] * highGain;
 
-        qreal red   = maxLowF * m_rgbLowColor_r + maxMidF * m_rgbMidColor_r + maxHighF * m_rgbHighColor_r;
-        qreal green = maxLowF * m_rgbLowColor_g + maxMidF * m_rgbMidColor_g + maxHighF * m_rgbHighColor_g;
-        qreal blue  = maxLowF * m_rgbLowColor_b + maxMidF * m_rgbMidColor_b + maxHighF * m_rgbHighColor_b;
+        float red = maxLowF * m_rgbLowColor_r + maxMidF * m_rgbMidColor_r +
+                maxHighF * m_rgbHighColor_r;
+        float green = maxLowF * m_rgbLowColor_g + maxMidF * m_rgbMidColor_g +
+                maxHighF * m_rgbHighColor_g;
+        float blue = maxLowF * m_rgbLowColor_b + maxMidF * m_rgbMidColor_b +
+                maxHighF * m_rgbHighColor_b;
 
         // Compute maximum (needed for value normalization)
-        qreal max = math_max3(red, green, blue);
+        float max = math_max3(red, green, blue);
 
         // Prevent division by zero
         if (max > 0.0f) {
+            const float invmax = 1.0 / max;
             // Set color
-            color.setRgbF(red / max, green / max, blue / max);
+            color.setRgbF(red * invmax, green * invmax, blue * invmax);
 
-            pen.setColor(color);
+            // pen.setColor(color);
 
-            painter->setPen(pen);
+            // painter->setPen(pen);
             switch (m_alignment) {
                 case Qt::AlignBottom:
                 case Qt::AlignRight:
-                    painter->drawLine(
-                        x, breadth,
-                        x, breadth - (int)(heightFactor * sqrtf(math_max(maxAll, maxAllNext))));
+                    painter->drawLine(x,
+                            breadth,
+                            x,
+                            breadth -
+                                    (int)(heightFactor *
+                                            sqrtftable[(int)math_max(
+                                                    maxAll, maxAllNext)]));
                     break;
                 case Qt::AlignTop:
                 case Qt::AlignLeft:
-                    painter->drawLine(
-                        x, 0,
-                        x, (int)(heightFactor * sqrtf(math_max(maxAll, maxAllNext))));
+                    painter->drawLine(x,
+                            0,
+                            x,
+                            (int)(heightFactor *
+                                    sqrtftable[(int)math_max(
+                                            maxAll, maxAllNext)]));
                     break;
-                default:
-                    painter->drawLine(
-                        x, (int)(halfBreadth - heightFactor * sqrtf(maxAll)),
-                        x, (int)(halfBreadth + heightFactor * sqrtf(maxAllNext)));
+                default: {
+                    int y1 = (int)(halfBreadth - heightFactor * sqrtftable[(int)maxAll]);
+                    int y2 = (int)(halfBreadth + heightFactor * sqrtftable[(int)maxAllNext]);
+                    painter->fillRect(x, y1, 1, y2 - y1, color);
+                }
+                    /*
+                    painter->drawLine(x,
+                            (int)(halfBreadth -
+                                    heightFactor * sqrtftable[(int)maxAll]),
+                            x,
+                            (int)(halfBreadth +
+                                    heightFactor *
+                                            sqrtftable[(int)maxAllNext]));
+                                            */
             }
         }
+
+        xVisualSampleIndex += gain;
     }
 }
