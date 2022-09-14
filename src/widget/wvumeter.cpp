@@ -9,6 +9,7 @@
 #include "moc_wvumeter.cpp"
 #include "util/math.h"
 #include "util/timer.h"
+#include "util/widgethelper.h"
 #include "waveform/sharedglcontext.h"
 #include "waveform/vsyncthread.h"
 #include "widget/wpixmapstore.h"
@@ -17,21 +18,6 @@
 #define DEFAULT_FALLSTEP 1
 #define DEFAULT_HOLDTIME 400
 #define DEFAULT_HOLDSIZE 5
-
-namespace {
-QColor findBaseColor(QWidget* pWidget) {
-    int i = 0;
-
-    while (pWidget) {
-        if (pWidget->palette().isBrushSet(QPalette::Normal, QPalette::Base)) {
-            return pWidget->palette().color(QPalette::Base);
-        }
-        i++;
-        pWidget = qobject_cast<QWidget*>(pWidget->parent());
-    }
-    return QColor(0, 0, 0);
-}
-} // namespace
 
 WVuMeter::WVuMeter(QWidget* parent)
         : QGLWidget(parent, SharedGLContext::getWidget()),
@@ -176,15 +162,22 @@ void WVuMeter::updateState(mixxx::Duration elapsed) {
 
 void WVuMeter::paintEvent(QPaintEvent* e) {
     Q_UNUSED(e);
+    // Force a rerender when render is called from the vsync thread, e.g. to
+    // git rid artifacts after hiding and showing the mixer or incomplete
+    // initial drawing.
+    m_bHasRendered = false;
 }
 
 void WVuMeter::showEvent(QShowEvent* e) {
     Q_UNUSED(e);
-    // find the base color recursively in parent widget
-    m_qBgColor = findBaseColor(this);
+    // Find the base color recursively in parent widget.
+    m_qBgColor = mixxx::widgethelper::findBaseColor(this);
 }
 
 void WVuMeter::render(VSyncThread* /* UNUSED vSyncThread */) {
+    // TODO (@m0dB) consider using timing information from the vSyncThread,
+    // instead of having an m_timer in each WVuMeter instance.
+
     ScopedTimer t("WVuMeter::render");
 
     if (m_bHasRendered && m_dParameter == m_dLastParameter &&
@@ -277,7 +270,8 @@ void WVuMeter::render(VSyncThread* /* UNUSED vSyncThread */) {
             }
         }
 
-        if (m_iPeakHoldSize > 0 && m_dPeakParameter > 0.0) {
+        if (m_iPeakHoldSize > 0 && m_dPeakParameter > 0.0 &&
+                m_dPeakParameter > m_dParameter) {
             const double widgetPeakPosition = math_clamp(
                     widgetHeight * m_dPeakParameter, 0.0, widgetHeight);
             const double pixmapPeakHoldSize = static_cast<double>(m_iPeakHoldSize);
