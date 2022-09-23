@@ -353,6 +353,18 @@ bool SidebarModel::dropAccept(const QModelIndex& index, const QList<QUrl>& urls,
     return result;
 }
 
+void SidebarModel::shortkeyRename(const QModelIndex& index) {
+    if (index.internalPointer() == this) {
+        m_sFeatures[index.row()]->shortkeyRename();
+    } else {
+        TreeItem* tree_item = (TreeItem*)index.internalPointer();
+        if (tree_item) {
+            LibraryFeature* feature = tree_item->feature();
+            feature->shortkeyRenameChild(index);
+        }
+    }
+}
+
 void SidebarModel::shortkeyDelete(const QModelIndex& index) {
     if (index.internalPointer() == this) {
         m_sFeatures[index.row()]->shortkeyDelete();

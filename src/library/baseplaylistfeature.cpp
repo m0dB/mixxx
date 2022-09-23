@@ -188,6 +188,9 @@ void BasePlaylistFeature::slotRenamePlaylist() {
     if (playlistId == -1) {
         return;
     }
+}
+
+void BasePlaylistFeature::renamePlaylist(int playlistId) {
     QString oldName = m_playlistDao.getPlaylistName(playlistId);
     bool locked = m_playlistDao.isPlaylistLocked(playlistId);
 

@@ -78,6 +78,8 @@ class BasePlaylistFeature : public BaseTrackSetFeature {
     // on failure.
     QModelIndex indexFromPlaylistId(int playlistId);
 
+    void renamePlaylist(int playlistId);
+
     PlaylistDAO& m_playlistDao;
     TreeItemModel m_childModel;
     QModelIndex m_lastRightClickedIndex;

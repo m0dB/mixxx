@@ -652,10 +652,10 @@ void PlaylistDAO::clearAutoDJQueue() {
     const int iAutoDJPlaylistId = getPlaylistIdFromName(AUTODJ_TABLE);
     // If the first track is already loaded to the player,
     // alter the playlist only below the first track
-    const int position =
-            (m_pAutoDJProcessor && m_pAutoDJProcessor->nextTrackLoaded()) ? 2 : 1;
+    //const int position =
+    //        (m_pAutoDJProcessor && m_pAutoDJProcessor->nextTrackLoaded()) ? 2 : 1;
 
-    removeTracksFromPlaylist(iAutoDJPlaylistId, position);
+    removeTracksFromPlaylist(iAutoDJPlaylistId, 0);
 }
 
 void PlaylistDAO::addPlaylistToAutoDJQueue(const int playlistId, AutoDJSendLoc loc) {

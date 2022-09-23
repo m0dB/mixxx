@@ -31,6 +31,7 @@ class PlaylistFeature : public BasePlaylistFeature {
     void shortkeyCopyChild(const QModelIndex& index) const override;
     void shortkeyPaste() override;
     void shortkeyPasteChild(const QModelIndex& index) override;
+    void shortkeyRenameChild(const QModelIndex& index) override;
 
     bool dropAcceptChild(const QModelIndex& index,
             const QList<QUrl>& urls,

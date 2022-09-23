@@ -53,6 +53,11 @@ class LibraryFeature : public QObject {
     virtual void shortkeyDeleteChild(const QModelIndex& index) {
         Q_UNUSED(index);
     }
+    virtual void shortkeyRename() {
+    }
+    virtual void shortkeyRenameChild(const QModelIndex& index) {
+        Q_UNUSED(index);
+    }
     virtual void shortkeyCut() {
     }
     virtual void shortkeyCutChild(const QModelIndex& index) {

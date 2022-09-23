@@ -141,6 +141,15 @@ void PlaylistFeature::shortkeyCopyChild(const QModelIndex& index) const {
     Clipboard::end();
 }
 
+void PlaylistFeature::shortkeyRenameChild(
+        const QModelIndex& index) {
+    const int playlistId = playlistIdFromIndex(index);
+    VERIFY_OR_DEBUG_ASSERT(playlistId >= 0) {
+        return;
+    }
+    renamePlaylist(playlistId);
+}
+
 void PlaylistFeature::shortkeyPaste() {
     // TODO (m0dB) consider creating a new playlist
 }
@@ -149,6 +158,10 @@ void PlaylistFeature::shortkeyPasteChild(
         const QModelIndex& index) {
     const int playlistId = playlistIdFromIndex(index);
     VERIFY_OR_DEBUG_ASSERT(playlistId >= 0) {
+        return;
+    }
+    bool locked = m_playlistDao.isPlaylistLocked(playlistId);
+    if (locked) {
         return;
     }
     const QList<QUrl> urls = Clipboard::urls();
