@@ -5,6 +5,7 @@
 #include <QStyleOption>
 #include <QStylePainter>
 #include <QtDebug>
+#include <iostream>
 
 #include "moc_wvumeter.cpp"
 #include "util/math.h"
@@ -51,6 +52,7 @@ WVuMeter::~WVuMeter() {
 }
 
 void WVuMeter::setup(const QDomNode& node, const SkinContext& context) {
+    assert(parent());
     // Set pixmaps
     bool bHorizontal = false;
     (void)context.hasNodeSelectBool(node, "Horizontal", &bHorizontal);
@@ -101,6 +103,8 @@ void WVuMeter::setPixmapBackground(
         const PixmapSource& source,
         Paintable::DrawMode mode,
         double scaleFactor) {
+    assert(parent());
+
     m_pPixmapBack = WPixmapStore::getPaintable(source, mode, scaleFactor);
     if (m_pPixmapBack.isNull()) {
         qDebug() << metaObject()->className()
@@ -114,6 +118,8 @@ void WVuMeter::setPixmaps(const PixmapSource& source,
         bool bHorizontal,
         Paintable::DrawMode mode,
         double scaleFactor) {
+    assert(parent());
+
     m_pPixmapVu = WPixmapStore::getPaintable(source, mode, scaleFactor);
     if (m_pPixmapVu.isNull()) {
         qDebug() << "WVuMeter: Error loading vu pixmap" << source.getPath();
@@ -129,6 +135,8 @@ void WVuMeter::setPixmaps(const PixmapSource& source,
 
 void WVuMeter::onConnectedControlChanged(double dParameter, double dValue) {
     Q_UNUSED(dValue);
+    assert(parent());
+
     m_dParameter = math_clamp(dParameter, 0.0, 1.0);
 
     if (dParameter > 0.0) {
@@ -142,6 +150,8 @@ void WVuMeter::onConnectedControlChanged(double dParameter, double dValue) {
 }
 
 void WVuMeter::setPeak(double parameter) {
+    assert(parent());
+
     if (parameter > m_dPeakParameter) {
         m_dPeakParameter = parameter;
         m_dPeakHoldCountdownMs = m_iPeakHoldTime;
@@ -149,6 +159,8 @@ void WVuMeter::setPeak(double parameter) {
 }
 
 void WVuMeter::updateState(mixxx::Duration elapsed) {
+    assert(parent());
+
     double msecsElapsed = elapsed.toDoubleMillis();
     // If we're holding at a peak then don't update anything
     m_dPeakHoldCountdownMs -= msecsElapsed;
@@ -172,11 +184,14 @@ void WVuMeter::paintEvent(QPaintEvent* e) {
     // Force a rerender when render is called from the vsync thread, e.g. to
     // git rid artifacts after hiding and showing the mixer or incomplete
     // initial drawing.
+    assert(parent());
     m_bHasRendered = false;
 }
 
 void WVuMeter::showEvent(QShowEvent* e) {
     Q_UNUSED(e);
+
+    assert(parent());
     // Find the base color recursively in parent widget.
     m_qBgColor = mixxx::widgethelper::findBaseColor(this);
 }
@@ -185,8 +200,9 @@ void WVuMeter::render(VSyncThread* /* UNUSED vSyncThread */) {
     // TODO (@m0dB) consider using timing information from the vSyncThread,
     // instead of having an m_timer in each WVuMeter instance.
 
-    ScopedTimer t("WVuMeter::render");
+    assert(parent());
 
+    ScopedTimer t("WVuMeter::render");
     if (m_bHasRendered && m_dParameter == m_dLastParameter &&
             m_dPeakParameter == m_dLastPeakParameter) {
         return;
@@ -313,6 +329,8 @@ void WVuMeter::render(VSyncThread* /* UNUSED vSyncThread */) {
 }
 
 void WVuMeter::swap() {
+    assert(parent());
+
     if (!m_bSwapNeeded || !isValid() || !isVisible() ||
             QWidget::window()->windowState() == Qt::WindowMinimized) {
         return;

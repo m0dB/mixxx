@@ -1567,6 +1567,7 @@ void MixxxMainWindow::rebootMixxxView() {
 
     // postpone deletion of vumeters, see MixxxMainWindow::finalize() for detail
     VuMeterPool::instance()->adopt();
+    WaveformWidgetFactory::instance()->disconnect();
 
     if (m_pWidgetParent) {
         m_pWidgetParent->hide();
@@ -1629,8 +1630,8 @@ void MixxxMainWindow::rebootMixxxView() {
     emit skinLoaded();
 
     // TODO @m0dB
-    // if we destroy the vu meters now, they will still be called after their destruction, resulting in a
-    // crash....
+    // if we destroy the vu meters now, we get a segfault. Seems Qt is still using a pointer to them?
+
     // VuMeterPool::instance()->destroyAdopted();
 }
 

@@ -20,7 +20,7 @@ void VuMeterPool::destroyAdopted() {
             it++;
         } else {
             it = m_pVuMeters.erase(it);
-            delete pVuMeter;
+            pVuMeter->deleteLater();
         }
     }
 }
@@ -37,7 +37,7 @@ void VuMeterPool::adopt() {
     // Remove the parent of the vumeters,, but we keep their pointers,
     // effectively "adopting" them.
     for (auto pVuMeter : m_pVuMeters) {
-        pVuMeter->disconnect();
+        pVuMeter->removeConnections();
         pVuMeter->setParent(Q_NULLPTR);
     }
 }

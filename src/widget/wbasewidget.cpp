@@ -12,6 +12,10 @@ WBaseWidget::WBaseWidget(QWidget* pWidget)
 }
 
 WBaseWidget::~WBaseWidget() {
+    removeConnections();
+}
+
+void WBaseWidget::removeConnections() {
     m_pDisplayConnection = nullptr;
     while (!m_leftConnections.isEmpty()) {
         delete m_leftConnections.takeLast();

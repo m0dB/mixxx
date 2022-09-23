@@ -43,6 +43,8 @@ class WBaseWidget {
 
     void addPropertyConnection(ControlWidgetPropertyConnection* pConnection);
 
+    void removeConnections();
+
     // Set a ControlWidgetConnection to be the display connection for the
     // widget. The connection should also be added via an addConnection method
     // or it will not be deleted or receive updates.
