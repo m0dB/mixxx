@@ -79,6 +79,7 @@
 #include "widget/wtracktext.h"
 #include "widget/wtrackwidgetgroup.h"
 #include "widget/wvumeter.h"
+#include "widget/wvumetergl.h"
 #include "widget/wwaveformviewer.h"
 #include "widget/wwidget.h"
 #include "widget/wwidgetgroup.h"
@@ -1243,6 +1244,7 @@ QWidget* LegacySkinParser::parseRecordingDuration(const QDomElement& node) {
     p->installEventFilter(m_pControllerManager->getControllerLearningEventFilter());
     return p;
 }
+
 QWidget* LegacySkinParser::parseSpinny(const QDomElement& node) {
     if (CmdlineArgs::Instance().getSafeMode()) {
         WLabel* dummy = new WLabel(m_pParent);
@@ -1252,6 +1254,7 @@ QWidget* LegacySkinParser::parseSpinny(const QDomElement& node) {
     }
 
     auto* waveformWidgetFactory = WaveformWidgetFactory::instance();
+
     if (!waveformWidgetFactory->isOpenGlAvailable() &&
             !waveformWidgetFactory->isOpenGlesAvailable()) {
         WLabel* dummy = new WLabel(m_pParent);
@@ -1285,6 +1288,15 @@ QWidget* LegacySkinParser::parseSpinny(const QDomElement& node) {
 }
 
 QWidget* LegacySkinParser::parseVuMeter(const QDomElement& node) {
+    if (!CmdlineArgs::Instance().getUseVuMeterGL()) {
+        // Standard WVuMeter
+        WVuMeter* pVuMeterWidget = parseStandardWidget<WVuMeter>(node);
+        WaveformWidgetFactory::instance()->addVuMeter(pVuMeterWidget);
+        return pVuMeterWidget;
+    }
+
+    // QGLWidget derived WVuMeterGL
+
     if (CmdlineArgs::Instance().getSafeMode()) {
         WLabel* dummy = new WLabel(m_pParent);
         //: Shown when Mixxx is running in safe mode.
@@ -1296,29 +1308,22 @@ QWidget* LegacySkinParser::parseVuMeter(const QDomElement& node) {
     if (!waveformWidgetFactory->isOpenGlAvailable() &&
             !waveformWidgetFactory->isOpenGlesAvailable()) {
         WLabel* dummy = new WLabel(m_pParent);
-        //: Shown when Spinny can not be displayed. Please keep \n unchanged
+        //: Shown when VuMeter can not be displayed. Please keep \n unchanged
         dummy->setText(tr("No OpenGL\nsupport."));
         return dummy;
     }
-    WVuMeter* vuMeter = new WVuMeter(m_pParent);
-    commonWidgetSetup(node, vuMeter);
+    WVuMeterGL* pVuMeterWidget = new WVuMeterGL(m_pParent);
+    commonWidgetSetup(node, pVuMeterWidget);
 
-    connect(waveformWidgetFactory,
-            &WaveformWidgetFactory::renderVuMeters,
-            vuMeter,
-            &WVuMeter::render);
-    connect(waveformWidgetFactory,
-            &WaveformWidgetFactory::swapVuMeters,
-            vuMeter,
-            &WVuMeter::swap);
+    waveformWidgetFactory->addVuMeter(pVuMeterWidget);
 
-    vuMeter->setup(node, *m_pContext);
-    vuMeter->installEventFilter(m_pKeyboard);
-    vuMeter->installEventFilter(
+    pVuMeterWidget->setup(node, *m_pContext);
+    pVuMeterWidget->installEventFilter(m_pKeyboard);
+    pVuMeterWidget->installEventFilter(
             m_pControllerManager->getControllerLearningEventFilter());
-    vuMeter->Init();
+    pVuMeterWidget->Init();
 
-    return vuMeter;
+    return pVuMeterWidget;
 }
 
 QWidget* LegacySkinParser::parseSearchBox(const QDomElement& node) {

@@ -1,17 +1,11 @@
 #include "widget/wvumeter.h"
 
-#include <QPaintEvent>
-#include <QPixmap>
 #include <QStyleOption>
 #include <QStylePainter>
-#include <QtDebug>
 
 #include "moc_wvumeter.cpp"
 #include "util/math.h"
 #include "util/timer.h"
-#include "util/widgethelper.h"
-#include "waveform/sharedglcontext.h"
-#include "waveform/vsyncthread.h"
 #include "widget/wpixmapstore.h"
 
 #define DEFAULT_FALLTIME 20
@@ -20,10 +14,7 @@
 #define DEFAULT_HOLDSIZE 5
 
 WVuMeter::WVuMeter(QWidget* parent)
-        : QGLWidget(parent, SharedGLContext::getWidget()),
-          WBaseWidget(this),
-          m_bHasRendered(false),
-          m_bSwapNeeded(false),
+        : WWidget(parent),
           m_dParameter(0),
           m_dPeakParameter(0),
           m_dLastParameter(0),
@@ -35,11 +26,6 @@ WVuMeter::WVuMeter(QWidget* parent)
           m_iPeakHoldTime(0),
           m_iPeakFallTime(0),
           m_dPeakHoldCountdownMs(0) {
-    setAttribute(Qt::WA_NoSystemBackground);
-    setAttribute(Qt::WA_OpaquePaintEvent);
-
-    setAutoFillBackground(false);
-    setAutoBufferSwap(false);
     m_timer.start();
 }
 
@@ -95,7 +81,7 @@ void WVuMeter::setPixmapBackground(
         Paintable::DrawMode mode,
         double scaleFactor) {
     m_pPixmapBack = WPixmapStore::getPaintable(source, mode, scaleFactor);
-    if (m_pPixmapBack.isNull()) {
+    if (m_pPixmapBack.isNull() || m_pPixmapBack->isNull()) {
         qDebug() << metaObject()->className()
                  << "Error loading background pixmap:" << source.getPath();
     } else if (mode == Paintable::FIXED) {
@@ -108,7 +94,7 @@ void WVuMeter::setPixmaps(const PixmapSource& source,
         Paintable::DrawMode mode,
         double scaleFactor) {
     m_pPixmapVu = WPixmapStore::getPaintable(source, mode, scaleFactor);
-    if (m_pPixmapVu.isNull()) {
+    if (m_pPixmapVu.isNull() || m_pPixmapVu->isNull()) {
         qDebug() << "WVuMeter: Error loading vu pixmap" << source.getPath();
     } else {
         m_bHorizontal = bHorizontal;
@@ -160,162 +146,98 @@ void WVuMeter::updateState(mixxx::Duration elapsed) {
     m_dPeakParameter = math_clamp(m_dPeakParameter, 0.0, 1.0);
 }
 
-void WVuMeter::paintEvent(QPaintEvent* e) {
-    Q_UNUSED(e);
-    // Force a rerender when render is called from the vsync thread, e.g. to
-    // git rid artifacts after hiding and showing the mixer or incomplete
-    // initial drawing.
-    m_bHasRendered = false;
+void WVuMeter::maybeUpdate() {
+    if (m_dParameter != m_dLastParameter || m_dPeakParameter != m_dLastPeakParameter) {
+        repaint();
+    }
 }
 
-void WVuMeter::showEvent(QShowEvent* e) {
-    Q_UNUSED(e);
-    // Find the base color recursively in parent widget.
-    m_qBgColor = mixxx::widgethelper::findBaseColor(this);
-}
+void WVuMeter::paintEvent(QPaintEvent* /*unused*/) {
+    ScopedTimer t("WVuMeter::paintEvent");
 
-void WVuMeter::render(VSyncThread* /* UNUSED vSyncThread */) {
-    // TODO (@m0dB) consider using timing information from the vSyncThread,
-    // instead of having an m_timer in each WVuMeter instance.
+    QStyleOption option;
+    option.initFrom(this);
+    QStylePainter p(this);
+    p.drawPrimitive(QStyle::PE_Widget, option);
 
-    ScopedTimer t("WVuMeter::render");
-
-    if (m_bHasRendered && m_dParameter == m_dLastParameter &&
-            m_dPeakParameter == m_dLastPeakParameter) {
-        return;
+    if (!m_pPixmapBack.isNull() && !m_pPixmapBack->isNull()) {
+        // Draw background. DrawMode takes care of whether to stretch or not.
+        m_pPixmapBack->draw(rect(), &p);
     }
 
-    if (!isValid() || !isVisible()) {
-        return;
-    }
+    if (!m_pPixmapVu.isNull() && !m_pPixmapVu->isNull()) {
+        const double widgetWidth = width();
+        const double widgetHeight = height();
+        const double pixmapWidth = m_pPixmapVu->width();
+        const double pixmapHeight = m_pPixmapVu->height();
 
-    auto* window = windowHandle();
-    if (window == nullptr || !window->isExposed()) {
-        return;
-    }
-
-    QPainter p(this);
-    // fill the background, in case the image contains transparency
-    p.fillRect(rect(), m_qBgColor);
-
-    if (!m_pPixmapBack.isNull()) {
-        // Draw background.
-        QRectF sourceRect(0, 0, m_pPixmapBack->width(), m_pPixmapBack->height());
-        m_pPixmapBack->draw(rect(), &p, sourceRect);
-    }
-
-    const double widgetWidth = width();
-    const double widgetHeight = height();
-    const double pixmapWidth = m_pPixmapVu.isNull() ? 0 : m_pPixmapVu->width();
-    const double pixmapHeight = m_pPixmapVu.isNull() ? 0 : m_pPixmapVu->height();
-
-    // Draw (part of) vu
-    if (m_bHorizontal) {
-        {
-            const double widgetPosition = math_clamp(widgetWidth * m_dParameter, 0.0, widgetWidth);
+        // Draw (part of) vu
+        if (m_bHorizontal) {
+            const double widgetPosition = math_clamp(widgetWidth * m_dParameter,
+                    0.0,
+                    widgetWidth);
             QRectF targetRect(0, 0, widgetPosition, widgetHeight);
 
-            if (!m_pPixmapVu.isNull()) {
-                const double pixmapPosition = math_clamp(
-                        pixmapWidth * m_dParameter, 0.0, pixmapWidth);
-                QRectF sourceRect(0, 0, pixmapPosition, pixmapHeight);
-                m_pPixmapVu->draw(targetRect, &p, sourceRect);
-            } else {
-                // fallback to green rectangle
-                p.fillRect(targetRect, QColor(0, 255, 0));
-            }
-        }
+            const double pixmapPosition = math_clamp(pixmapWidth * m_dParameter,
+                    0.0,
+                    pixmapWidth);
+            QRectF sourceRect(0, 0, pixmapPosition, m_pPixmapVu->height());
+            m_pPixmapVu->draw(targetRect, &p, sourceRect);
 
-        if (m_iPeakHoldSize > 0 && m_dPeakParameter > 0.0 &&
-                m_dPeakParameter > m_dParameter) {
-            const double widgetPeakPosition = math_clamp(
-                    widgetWidth * m_dPeakParameter, 0.0, widgetWidth);
-            const double pixmapPeakHoldSize = static_cast<double>(m_iPeakHoldSize);
-            const double widgetPeakHoldSize = widgetWidth * pixmapPeakHoldSize / pixmapHeight;
+            if (m_iPeakHoldSize > 0 && m_dPeakParameter > 0.0) {
+                const double widgetPeakPosition = math_clamp(
+                        widgetWidth * m_dPeakParameter, 0.0, widgetWidth);
+                const double widgetPeakHoldSize = widgetWidth *
+                        static_cast<double>(m_iPeakHoldSize) / pixmapWidth;
 
-            QRectF targetRect(widgetPeakPosition - widgetPeakHoldSize,
-                    0,
-                    widgetPeakHoldSize,
-                    widgetHeight);
-
-            if (!m_pPixmapVu.isNull()) {
                 const double pixmapPeakPosition = math_clamp(
                         pixmapWidth * m_dPeakParameter, 0.0, pixmapWidth);
+                const double pixmapPeakHoldSize = m_iPeakHoldSize;
 
-                QRectF sourceRect =
-                        QRectF(pixmapPeakPosition - pixmapPeakHoldSize,
-                                0,
-                                pixmapPeakHoldSize,
-                                pixmapHeight);
+                targetRect = QRectF(widgetPeakPosition - widgetPeakHoldSize,
+                        0,
+                        widgetPeakHoldSize,
+                        widgetHeight);
+                sourceRect = QRectF(pixmapPeakPosition - pixmapPeakHoldSize,
+                        0,
+                        pixmapPeakHoldSize,
+                        pixmapHeight);
                 m_pPixmapVu->draw(targetRect, &p, sourceRect);
-            } else {
-                // fallback to green rectangle
-                p.fillRect(targetRect, QColor(0, 255, 0));
             }
-        }
-    } else {
-        // vertical
-        {
-            const double widgetPosition =
-                    math_clamp(widgetHeight * m_dParameter, 0.0, widgetHeight);
+        } else {
+            const double widgetPosition = math_clamp(widgetHeight * m_dParameter,
+                    0.0,
+                    widgetHeight);
             QRectF targetRect(0, widgetHeight - widgetPosition, widgetWidth, widgetPosition);
 
-            if (!m_pPixmapVu.isNull()) {
-                const double pixmapPosition = math_clamp(
-                        pixmapHeight * m_dParameter, 0.0, pixmapHeight);
-                QRectF sourceRect(0, pixmapHeight - pixmapPosition, pixmapWidth, pixmapPosition);
-                m_pPixmapVu->draw(targetRect, &p, sourceRect);
-            } else {
-                // fallback to green rectangle
-                p.fillRect(targetRect, QColor(0, 255, 0));
-            }
-        }
+            const double pixmapPosition = math_clamp(pixmapHeight * m_dParameter,
+                    0.0,
+                    pixmapHeight);
+            QRectF sourceRect(0, pixmapHeight - pixmapPosition, pixmapWidth, pixmapPosition);
+            m_pPixmapVu->draw(targetRect, &p, sourceRect);
 
-        if (m_iPeakHoldSize > 0 && m_dPeakParameter > 0.0 &&
-                m_dPeakParameter > m_dParameter) {
-            const double widgetPeakPosition = math_clamp(
-                    widgetHeight * m_dPeakParameter, 0.0, widgetHeight);
-            const double pixmapPeakHoldSize = static_cast<double>(m_iPeakHoldSize);
-            const double widgetPeakHoldSize = widgetHeight * pixmapPeakHoldSize / pixmapHeight;
+            if (m_iPeakHoldSize > 0 && m_dPeakParameter > 0.0) {
+                const double widgetPeakPosition = math_clamp(
+                        widgetHeight * m_dPeakParameter, 0.0, widgetHeight);
+                const double widgetPeakHoldSize = widgetHeight *
+                        static_cast<double>(m_iPeakHoldSize) / pixmapHeight;
 
-            QRectF targetRect(0,
-                    widgetHeight - widgetPeakPosition,
-                    widgetWidth,
-                    widgetPeakHoldSize);
-
-            if (!m_pPixmapVu.isNull()) {
                 const double pixmapPeakPosition = math_clamp(
                         pixmapHeight * m_dPeakParameter, 0.0, pixmapHeight);
+                const double pixmapPeakHoldSize = m_iPeakHoldSize;
 
-                QRectF sourceRect = QRectF(0,
+                targetRect = QRectF(0,
+                        widgetHeight - widgetPeakPosition,
+                        widgetWidth,
+                        widgetPeakHoldSize);
+                sourceRect = QRectF(0,
                         pixmapHeight - pixmapPeakPosition,
                         pixmapWidth,
                         pixmapPeakHoldSize);
                 m_pPixmapVu->draw(targetRect, &p, sourceRect);
-            } else {
-                // fallback to green rectangle
-                p.fillRect(targetRect, QColor(0, 255, 0));
             }
         }
     }
-
     m_dLastParameter = m_dParameter;
     m_dLastPeakParameter = m_dPeakParameter;
-    m_bHasRendered = true;
-    m_bSwapNeeded = true;
-}
-
-void WVuMeter::swap() {
-    if (!isValid() || !isVisible() || !m_bSwapNeeded) {
-        return;
-    }
-    auto* window = windowHandle();
-    if (window == nullptr || !window->isExposed()) {
-        return;
-    }
-    if (context() != QGLContext::currentContext()) {
-        makeCurrent();
-    }
-    swapBuffers();
-    m_bSwapNeeded = false;
 }
