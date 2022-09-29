@@ -2,10 +2,12 @@
 
 #include <QColor>
 
+#include "rendergraph/geometrynode.h"
 #include "rendergraph/node.h"
 #include "waveform/renderers/waveformrendermarkbase.h"
 
 class QDomNode;
+class SkinContext;
 
 namespace rendergraph {
 class GeometryNode;
@@ -15,12 +17,16 @@ class Context;
 namespace allshader {
 class DigitsRenderNode;
 class WaveformRenderMark;
-}
+} // namespace allshader
 
 class allshader::WaveformRenderMark : public ::WaveformRenderMarkBase,
                                       public rendergraph::Node {
   public:
     explicit WaveformRenderMark(WaveformWidgetRenderer* waveformWidget,
+#ifndef __RENDERGRAPH_OPENGL__
+            QColor fgPlayColor,
+            QColor bgPlayColor,
+#endif
             ::WaveformRendererAbstract::PositionSource type =
                     ::WaveformRendererAbstract::Play);
 
@@ -67,6 +73,11 @@ class allshader::WaveformRenderMark : public ::WaveformRenderMarkBase,
     float m_playPosDevicePixelRatio;
 
     DigitsRenderNode* m_pDigitsRenderNode{};
+
+#ifndef __RENDERGRAPH_OPENGL__
+    QColor m_fgPlayColor;
+    QColor m_bgPlayColor;
+#endif
 
     DISALLOW_COPY_AND_ASSIGN(WaveformRenderMark);
 };

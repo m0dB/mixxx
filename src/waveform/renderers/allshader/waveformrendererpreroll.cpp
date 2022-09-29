@@ -66,6 +66,7 @@ WaveformRendererPreroll::WaveformRendererPreroll(
         WaveformWidgetRenderer* waveformWidget,
         ::WaveformRendererAbstract::PositionSource type)
         : ::WaveformRendererAbstract(waveformWidget),
+          m_color(QColor(200, 25, 20)),
           m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip) {
     setGeometry(std::make_unique<Geometry>(PatternMaterial::attributes(), 0));
     setMaterial(std::make_unique<PatternMaterial>());

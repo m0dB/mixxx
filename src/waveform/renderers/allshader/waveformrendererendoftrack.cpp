@@ -1,6 +1,7 @@
 #include "waveform/renderers/allshader/waveformrendererendoftrack.h"
 
 #include <QDomNode>
+#include <QSGNode>
 #include <QVector4D>
 #include <memory>
 
@@ -24,10 +25,11 @@ using namespace rendergraph;
 namespace allshader {
 
 WaveformRendererEndOfTrack::WaveformRendererEndOfTrack(
-        WaveformWidgetRenderer* waveformWidget)
+        WaveformWidgetRenderer* waveformWidget, QColor color)
         : ::WaveformRendererAbstract(waveformWidget),
           m_pEndOfTrackControl(nullptr),
-          m_pTimeRemainingControl(nullptr) {
+          m_pTimeRemainingControl(nullptr),
+          m_color(color) {
     initForRectangles<RGBAMaterial>(0);
     setUsePreprocess(true);
 }
@@ -40,11 +42,6 @@ void WaveformRendererEndOfTrack::draw(QPainter* painter, QPaintEvent* event) {
 
 bool WaveformRendererEndOfTrack::init() {
     m_timer.restart();
-
-    m_pEndOfTrackControl.reset(new ControlProxy(
-            m_waveformRenderer->getGroup(), "end_of_track"));
-    m_pTimeRemainingControl.reset(new ControlProxy(
-            m_waveformRenderer->getGroup(), "time_remaining"));
 
     return true;
 }
@@ -59,7 +56,31 @@ void WaveformRendererEndOfTrack::setup(const QDomNode& node, const SkinContext& 
 }
 
 void WaveformRendererEndOfTrack::preprocess() {
-    const int elapsed = m_timer.elapsed().toIntegerMillis() % kBlinkingPeriodMillis;
+    if (!m_pEndOfTrackControl) {
+        m_pEndOfTrackControl = std::make_unique<ControlProxy>(
+                m_waveformRenderer->getGroup(), "end_of_track");
+    }
+    if (!m_pTimeRemainingControl) {
+        m_pTimeRemainingControl = std::make_unique<ControlProxy>(
+                m_waveformRenderer->getGroup(), "time_remaining");
+    }
+
+    static int offset = 0;
+    const int elapsedTotal = m_timer.elapsed().toIntegerMillis();
+    const int elapsed = (elapsedTotal + offset) % kBlinkingPeriodMillis;
+
+    // for testing
+    offset = (offset == 0) ? kBlinkingPeriodMillis / 4 : 0;
+
+    if (elapsedTotal >= m_lastFrameCountLogged + 1000) {
+        if (elapsedTotal >= m_lastFrameCountLogged + 2000) {
+            m_lastFrameCountLogged = elapsedTotal;
+        }
+        m_lastFrameCountLogged += 1000;
+        qDebug() << "FPS:" << m_frameCount;
+        m_frameCount = 0;
+    }
+    m_frameCount++;
 
     const double blinkIntensity = (double)(2 * abs(elapsed - kBlinkingPeriodMillis / 2)) /
             kBlinkingPeriodMillis;
@@ -67,10 +88,16 @@ void WaveformRendererEndOfTrack::preprocess() {
     const double remainingTime = m_pTimeRemainingControl->get();
     const double remainingTimeTriggerSeconds =
             WaveformWidgetFactory::instance()->getEndOfTrackWarningTime();
-    const double criticalIntensity = (remainingTimeTriggerSeconds - remainingTime) /
-            remainingTimeTriggerSeconds;
+    const double criticalIntensity = static_cast<double>(elapsed) /
+            static_cast<double>(
+                    kBlinkingPeriodMillis); // TODO put back:
+                                            //(remainingTimeTriggerSeconds -
+                                            //  remainingTime) /
+                                            //  remainingTimeTriggerSeconds;
 
-    const double alpha = criticalIntensity * blinkIntensity;
+    const double alpha = std::max(0.0, std::min(1.0, criticalIntensity * blinkIntensity));
+
+    bool forceSetUniformMatrix = false;
 
     if (alpha != 0.0) {
         QSizeF size(m_waveformRenderer->getWidth(), m_waveformRenderer->getHeight());
@@ -102,7 +129,7 @@ void WaveformRendererEndOfTrack::preprocess() {
 }
 
 bool WaveformRendererEndOfTrack::isSubtreeBlocked() const {
-    return !m_pEndOfTrackControl->toBool();
+    return !(!m_pEndOfTrackControl || m_pEndOfTrackControl->toBool());
 }
 
 } // namespace allshader

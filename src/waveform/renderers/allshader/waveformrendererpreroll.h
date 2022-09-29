@@ -13,6 +13,9 @@ class SkinContext;
 namespace allshader {
 class WaveformRendererPreroll;
 }
+namespace rendergraph {
+class Context;
+}
 
 class allshader::WaveformRendererPreroll final
         : public ::WaveformRendererAbstract,
@@ -22,6 +25,16 @@ class allshader::WaveformRendererPreroll final
             WaveformWidgetRenderer* waveformWidget,
             ::WaveformRendererAbstract::PositionSource type =
                     ::WaveformRendererAbstract::Play);
+    explicit WaveformRendererPreroll(
+            WaveformWidgetRenderer* waveformWidget,
+            rendergraph::Context* pContext,
+            QColor color,
+            ::WaveformRendererAbstract::PositionSource type =
+                    ::WaveformRendererAbstract::Play)
+            : WaveformRendererPreroll(waveformWidget, type) {
+        m_pContext = pContext;
+        m_color = color;
+    }
     ~WaveformRendererPreroll() override;
 
     // Pure virtual from WaveformRendererAbstract, not used
@@ -34,6 +47,7 @@ class allshader::WaveformRendererPreroll final
 
   private:
     QColor m_color;
+    rendergraph::Context* m_pContext;
     float m_markerBreadth{};
     float m_markerLength{};
     bool m_isSlipRenderer;

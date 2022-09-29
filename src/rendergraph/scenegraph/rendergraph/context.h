@@ -8,7 +8,7 @@ class Context;
 
 class rendergraph::Context {
   public:
-    Context(QQuickWindow* pWindow);
+    Context(QQuickWindow* pWindow = nullptr);
     QQuickWindow* window() const;
 
   private:

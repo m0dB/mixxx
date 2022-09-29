@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QMatrix4x4>
+
 #include "track/track_decl.h"
 #include "util/class.h"
 #include "waveform/renderers/waveformmark.h"
@@ -11,7 +13,7 @@
 
 class ControlProxy;
 class VisualPlayPosition;
-class VSyncThread;
+class ISyncTimeProvider;
 class QPainter;
 class WaveformRendererAbstract;
 
@@ -39,11 +41,16 @@ class WaveformWidgetRenderer {
     virtual bool onInit() {return true;}
 
     void setup(const QDomNode& node, const SkinContext& context);
-    void onPreRender(VSyncThread* vsyncThread);
+    void onPreRender(ISyncTimeProvider* vsyncThread);
     void draw(QPainter* painter, QPaintEvent* event);
 
     const QString& getGroup() const {
         return m_group;
+    }
+
+    virtual void setGroup(const QString& group) {
+        m_group = group;
+        init();
     }
 
     const TrackPointer& getTrackInfo() const {
@@ -139,23 +146,47 @@ class WaveformWidgetRenderer {
     int getBeatGridAlpha() const {
         return m_alphaBeatGrid;
     }
-
+    
     virtual void resizeRenderer(int width, int height, float devicePixelRatio);
 
+    void setDevicePixelRatio(float devicePixelRatio) {
+        if (m_devicePixelRatio != devicePixelRatio) {
+            m_devicePixelRatio = devicePixelRatio;
+            m_matrixNeedUpdate = true;
+        }
+    }
+    void setViewport(const QSize& viewport) {
+        if (m_viewport != viewport) {
+            m_viewport = viewport;
+            m_matrixNeedUpdate = true;
+        }
+    }
+    void setRect(const QRectF& rect) {
+        if (m_rect != rect) {
+            m_rect = rect;
+            m_matrixNeedUpdate = true;
+        }
+    }
+    const QSize getViewport() const {
+        return m_viewport;
+    }
+    const QSizeF getSize() const {
+        return m_rect.size();
+    }
     int getHeight() const {
-        return m_height;
+        return static_cast<int>(m_rect.height());
     }
     int getWidth() const {
-        return m_width;
+        return static_cast<int>(m_rect.width());
     }
     float getDevicePixelRatio() const {
         return m_devicePixelRatio;
     }
     int getLength() const {
-        return m_orientation == Qt::Horizontal ? m_width : m_height;
+        return m_orientation == Qt::Horizontal ? getWidth() : getHeight();
     }
     int getBreadth() const {
-        return m_orientation == Qt::Horizontal ? m_height : m_width;
+        return m_orientation == Qt::Horizontal ? getHeight() : getWidth();
     }
     Qt::Orientation getOrientation() const {
         return m_orientation;
@@ -172,6 +203,10 @@ class WaveformWidgetRenderer {
         T_Renderer* renderer = new T_Renderer(this, std::forward<Args>(args)...);
         m_rendererStack.push_back(renderer);
         return renderer;
+    }
+
+    void addRenderer(WaveformRendererAbstract* renderer) {
+        m_rendererStack.push_back(renderer);
     }
 
     void setTrack(TrackPointer track);
@@ -205,13 +240,19 @@ class WaveformWidgetRenderer {
     }
 
   protected:
-    const QString m_group;
+    QString m_group;
     TrackPointer m_pTrack;
     QList<WaveformRendererAbstract*> m_rendererStack;
     Qt::Orientation m_orientation;
     int m_dimBrightThreshold;
     int m_height;
     int m_width;
+    bool m_matrixNeedUpdate;
+    bool m_matrixChanged;
+    QRectF m_rect;
+    QSize m_viewport;
+    QMatrix4x4 m_matrix;
+    QMatrix4x4 m_matrixDevicePixelRatio;
     float m_devicePixelRatio;
     WaveformSignalColors m_colors;
     QColor m_passthroughLabelColor;
@@ -231,10 +272,10 @@ class WaveformWidgetRenderer {
     QSharedPointer<VisualPlayPosition> m_visualPlayPosition;
     int m_posVSample[2];
     int m_totalVSamples;
-    ControlProxy* m_pRateRatioCO;
-    ControlProxy* m_pGainControlObject;
+    std::unique_ptr<ControlProxy> m_pRateRatioCO;
+    std::unique_ptr<ControlProxy> m_pGainControlObject;
+    std::unique_ptr<ControlProxy> m_pTrackSamplesControlObject;
     double m_gain;
-    ControlProxy* m_pTrackSamplesControlObject;
     double m_trackSamples;
     double m_scaleFactor;
     double m_playMarkerPosition;   // 0.0 - left, 0.5 - center, 1.0 - right

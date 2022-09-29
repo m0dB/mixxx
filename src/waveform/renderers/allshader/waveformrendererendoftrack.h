@@ -22,7 +22,7 @@ class allshader::WaveformRendererEndOfTrack final
           public rendergraph::GeometryNode {
   public:
     explicit WaveformRendererEndOfTrack(
-            WaveformWidgetRenderer* waveformWidget);
+            WaveformWidgetRenderer* waveformWidget, QColor color = QColor());
 
     // Pure virtual from WaveformRendererAbstract, not used
     void draw(QPainter* painter, QPaintEvent* event) override final;
@@ -36,6 +36,10 @@ class allshader::WaveformRendererEndOfTrack final
     bool isSubtreeBlocked() const override;
 
   private:
+    // TODO REMOVE
+    int m_lastFrameCountLogged{};
+    int m_frameCount{};
+
     std::unique_ptr<ControlProxy> m_pEndOfTrackControl;
     std::unique_ptr<ControlProxy> m_pTimeRemainingControl;
 

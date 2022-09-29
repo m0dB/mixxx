@@ -69,7 +69,7 @@ class WaveformMarkNodeGraphics : public WaveformMark::Graphics {
             rendergraph::Context* pContext,
             const QImage& image)
             : m_pNode(std::make_unique<WaveformMarkNode>(
-                      pOwner, pContext, image)) {
+                      pOwner, pContext, image)), m_pContext(pContext) {
     }
     void updateTexture(rendergraph::Context* pContext, const QImage& image) {
         waveformMarkNode()->updateTexture(pContext, image);
@@ -94,6 +94,7 @@ class WaveformMarkNodeGraphics : public WaveformMark::Graphics {
     WaveformMarkNode* waveformMarkNode() const {
         return static_cast<WaveformMarkNode*>(m_pNode.get());
     }
+    rendergraph::Context* m_pContext;
 
     std::unique_ptr<rendergraph::TreeNode> m_pNode;
 };
@@ -125,11 +126,19 @@ QString timeSecToString(double timeSec) {
 
 allshader::WaveformRenderMark::WaveformRenderMark(
         WaveformWidgetRenderer* waveformWidget,
+#ifndef __RENDERGRAPH_OPENGL__
+        QColor fgPlayColor,
+        QColor bgPlayColor,
+#endif
         ::WaveformRendererAbstract::PositionSource type)
         : ::WaveformRenderMarkBase(waveformWidget, false),
           m_beatsUntilMark(0),
           m_timeUntilMark(0.0),
           m_pTimeRemainingControl(nullptr),
+#ifndef __RENDERGRAPH_OPENGL__
+          m_fgPlayColor(fgPlayColor),
+          m_bgPlayColor(bgPlayColor),
+#endif
           m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip),
           m_playPosHeight(0.f),
           m_playPosDevicePixelRatio(0.f) {
@@ -444,8 +453,15 @@ void allshader::WaveformRenderMark::updatePlayPosMarkTexture(rendergraph::Contex
 
     painter.setWorldMatrixEnabled(false);
 
+#ifdef __RENDERGRAPH_OPENGL__
     const QColor fgColor{m_waveformRenderer->getWaveformSignalColors()->getPlayPosColor()};
     const QColor bgColor{m_waveformRenderer->getWaveformSignalColors()->getBgColor()};
+#else
+    const QColor& fgColor = m_fgPlayColor;
+    const QColor& bgColor = m_bgPlayColor;
+#endif
+    qDebug() << "COOOLOOOOR" << fgColor;
+    qDebug() << "COOOLOOOOR" << bgColor;
 
     // draw dim outlines to increase playpos/waveform contrast
     painter.setPen(bgColor);

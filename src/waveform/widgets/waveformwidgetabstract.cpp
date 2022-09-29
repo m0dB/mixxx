@@ -3,6 +3,7 @@
 #include <QWidget>
 
 #include "waveform/renderers/waveformwidgetrenderer.h"
+#include "waveform/vsyncthread.h"
 
 WaveformWidgetAbstract::WaveformWidgetAbstract(const QString& group)
         : WaveformWidgetRenderer(group),
@@ -36,12 +37,14 @@ mixxx::Duration WaveformWidgetAbstract::render() {
     // Time for Painter setup, unknown in this case
     return mixxx::Duration();
 }
-
+/*
 void WaveformWidgetAbstract::resize(int width, int height) {
     qreal devicePixelRatio = 1.0;
     if (m_widget) {
         m_widget->resize(width, height);
         devicePixelRatio = m_widget->devicePixelRatioF();
     }
-    resizeRenderer(width, height, static_cast<float>(devicePixelRatio));
+    setSize(QSize(width, height));
+    setDevicePixelRatio(static_cast<float>(devicePixelRatio));
 }
+*/
