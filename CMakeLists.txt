@@ -1371,7 +1371,9 @@ if(QML)
     src/qml/qmlplayermanagerproxy.cpp
     src/qml/qmlplayerproxy.cpp
     src/qml/qmlvisibleeffectsmodel.cpp
+    src/qml/qmlwaveformdisplay.cpp
     src/qml/qmlwaveformoverview.cpp
+    src/waveform/renderers/waveformdisplayrange.cpp
   )
 else()
   target_sources(mixxx-lib PRIVATE
@@ -2626,6 +2628,7 @@ if(QML)
       res/qml/Mixxx/Controls/WaveformOverviewHotcueMarker.qml
       res/qml/Mixxx/Controls/WaveformOverviewMarker.qml
       res/qml/Mixxx/Controls/WaveformOverview.qml
+      res/qml/Mixxx/Controls/WaveformDisplay.qml
   )
   target_link_libraries(mixxx-lib PRIVATE mixxx-qml-mixxxcontrolsplugin)
 

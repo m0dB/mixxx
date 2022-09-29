@@ -6,9 +6,10 @@
 #include <QTime>
 
 #include "util/performancetimer.h"
+#include "waveform/isynctimeprovider.h"
 #include "widget/wglwidget.h"
 
-class VSyncThread : public QThread {
+class VSyncThread : public QThread, public ISyncTimeProvider {
     Q_OBJECT
   public:
     enum VSyncMode {
@@ -23,7 +24,7 @@ class VSyncThread : public QThread {
     VSyncThread(QObject* pParent);
     ~VSyncThread();
 
-    void run();
+    void run() override;
 
     bool waitForVideoSync(WGLWidget* glw);
     int elapsed();
@@ -32,15 +33,18 @@ class VSyncThread : public QThread {
     void setVSyncType(int mode);
     int droppedFrames();
     void setSwapWait(int sw);
-    int fromTimerToNextSyncMicros(const PerformanceTimer& timer);
+
+    // ISyncTimerProvider
+    int fromTimerToNextSyncMicros(const PerformanceTimer& timer) override;
+    int getSyncIntervalTimeMicros() const override {
+        return m_syncIntervalTimeMicros;
+    }
+
     void vsyncSlotFinished();
     void getAvailableVSyncTypes(QList<QPair<int, QString>>* list);
     void setupSync(WGLWidget* glw, int index);
     void waitUntilSwap(WGLWidget* glw);
     mixxx::Duration sinceLastSwap() const;
-    int getSyncIntervalTimeMicros() const {
-        return m_syncIntervalTimeMicros;
-    }
   signals:
     void vsyncRender();
     void vsyncSwap();

@@ -6,9 +6,7 @@
 #include "control/controlproxy.h"
 #include "moc_visualplayposition.cpp"
 #include "util/math.h"
-#ifndef MIXXX_USE_QML
-#include "waveform/vsyncthread.h"
-#endif
+#include "waveform/isynctimeprovider.h"
 
 //static
 QMap<QString, QWeakPointer<VisualPlayPosition>> VisualPlayPosition::m_listVisualPlayPosition;
@@ -57,16 +55,10 @@ void VisualPlayPosition::set(
 }
 
 double VisualPlayPosition::calcOffsetAtNextVSync(
-        VSyncThread* pVSyncThread, const VisualPlayPositionData& data) {
+        ISyncTimeProvider* pSyncTimeProvider, const VisualPlayPositionData& data) {
     if (data.m_audioBufferMicroS != 0.0) {
-#ifdef MIXXX_USE_QML
-        Q_UNUSED(pVSyncThread);
-        const int refToVSync = 0;
-        const int syncIntervalTimeMicros = 0;
-#else
-        const int refToVSync = pVSyncThread->fromTimerToNextSyncMicros(data.m_referenceTime);
-        const int syncIntervalTimeMicros = pVSyncThread->getSyncIntervalTimeMicros();
-#endif
+        const int refToVSync = pSyncTimeProvider->fromTimerToNextSyncMicros(data.m_referenceTime);
+        const int syncIntervalTimeMicros = pSyncTimeProvider->getSyncIntervalTimeMicros();
         // The offset is limited to the audio buffer + waveform sync interval
         // This should be sufficient to compensate jitter, but does not continue
         // in case of underflows.
@@ -105,22 +97,23 @@ double VisualPlayPosition::determinePlayPosInLoopBoundries(
     return interpolatedPlayPos;
 }
 
-double VisualPlayPosition::getAtNextVSync(VSyncThread* pVSyncThread) {
+double VisualPlayPosition::getAtNextVSync(ISyncTimeProvider* pSyncTimeProvider) {
     if (m_valid) {
         const VisualPlayPositionData data = m_data.getValue();
-        const double offset = calcOffsetAtNextVSync(pVSyncThread, data);
+        const double offset = calcOffsetAtNextVSync(pSyncTimeProvider, data);
 
         return determinePlayPosInLoopBoundries(data, offset);
     }
     return -1;
 }
 
-void VisualPlayPosition::getPlaySlipAtNextVSync(VSyncThread* pVSyncThread,
+void VisualPlayPosition::getPlaySlipAtNextVSync(
+        ISyncTimeProvider* pSyncTimeProvider,
         double* pPlayPosition,
         double* pSlipPosition) {
     if (m_valid) {
         const VisualPlayPositionData data = m_data.getValue();
-        const double offset = calcOffsetAtNextVSync(pVSyncThread, data);
+        const double offset = calcOffsetAtNextVSync(pSyncTimeProvider, data);
 
         double interpolatedPlayPos = determinePlayPosInLoopBoundries(data, offset);
         *pPlayPosition = interpolatedPlayPos;
