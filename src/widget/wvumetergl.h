@@ -1,15 +1,14 @@
 #pragma once
 
-#include <QGLWidget>
-
 #include "skin/legacy/skincontext.h"
 #include "util/duration.h"
+#include "widget/wglwidget.h"
 #include "widget/wpixmapstore.h"
 #include "widget/wwidget.h"
 
 class VSyncThread;
 
-class WVuMeterGL : public QGLWidget, public WBaseWidget {
+class WVuMeterGL : public WGLWidget, public WBaseWidget {
     Q_OBJECT
   public:
     explicit WVuMeterGL(QWidget* parent = nullptr);
