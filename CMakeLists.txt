@@ -1128,6 +1128,7 @@ else()
     src/waveform/waveformmarklabel.cpp
     src/waveform/waveformwidgetfactory.cpp
     src/waveform/widgets/emptywaveformwidget.cpp
+    src/waveform/widgets/glwaveformwidgetabstract.cpp
     src/waveform/widgets/glrgbwaveformwidget.cpp
     src/waveform/widgets/glsimplewaveformwidget.cpp
     src/waveform/widgets/glslwaveformwidget.cpp
