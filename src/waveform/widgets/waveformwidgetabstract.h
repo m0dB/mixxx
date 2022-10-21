@@ -8,6 +8,12 @@
 #include "waveformwidgettype.h"
 #include "widget/wglwidget.h"
 
+#ifdef MIXXX_USE_QOPENGL
+namespace qopengl {
+class IWaveformWidget;
+}
+#endif
+
 class VSyncThread;
 
 // NOTE(vRince) This class represent objects the waveformwidgetfactory can
@@ -29,6 +35,14 @@ class WaveformWidgetAbstract : public WaveformWidgetRenderer {
     virtual WGLWidget* getGLWidget() {
         return nullptr;
     }
+
+#ifdef MIXXX_USE_QOPENGL
+    // Derived classes that implement the IWaveformWidget
+    // interface should return this
+    virtual qopengl::IWaveformWidget* qopenglWaveformWidget() {
+        return nullptr;
+    }
+#endif
 
     void hold();
     void release();
