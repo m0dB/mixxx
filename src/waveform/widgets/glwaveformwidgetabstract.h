@@ -3,7 +3,8 @@
 #include "waveform/renderers/glwaveformrenderer.h"
 #include "waveform/widgets/waveformwidgetabstract.h"
 #include "widget/wglwidget.h"
-#include "widget/wwaveformviewer.h"
+
+class WWaveformViewer;
 
 QT_FORWARD_DECLARE_CLASS(QString)
 
@@ -15,15 +16,7 @@ QT_FORWARD_DECLARE_CLASS(QString)
 /// be done in the constructor.
 class GLWaveformWidgetAbstract : public WaveformWidgetAbstract, public WGLWidget {
   public:
-    GLWaveformWidgetAbstract(const QString& group, QWidget* parent)
-            : WaveformWidgetAbstract(group),
-              WGLWidget(parent)
-#if !defined(QT_NO_OPENGL) && !defined(QT_OPENGL_ES_2)
-              ,
-              m_pGlRenderer(nullptr)
-#endif // !defined(QT_NO_OPENGL) && !defined(QT_OPENGL_ES_2)
-    {
-    }
+    GLWaveformWidgetAbstract(const QString& group, QWidget* parent);
 
     WGLWidget* getGLWidget() override {
         return this;
@@ -37,17 +30,12 @@ class GLWaveformWidgetAbstract : public WaveformWidgetAbstract, public WGLWidget
         }
     }
 
+    GLWaveformRenderer* m_pGlRenderer;
+
+  private:
 #ifdef MIXXX_USE_QOPENGL
-    // We need to forward events coming from the QOpenGLWindow
-    // (drag&drop, mouse) to the viewer
-    void handleEventFromWindow(QEvent* ev) override {
-        auto viewer = dynamic_cast<WWaveformViewer*>(parent());
-        if (viewer) {
-            viewer->handleEventFromWindow(ev);
-        }
-    }
+    void handleEventFromWindow(QEvent* ev) override;
 #endif
 
-    GLWaveformRenderer* m_pGlRenderer;
 #endif // !defined(QT_NO_OPENGL) && !defined(QT_OPENGL_ES_2)
 };
