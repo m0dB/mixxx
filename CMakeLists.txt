@@ -1146,19 +1146,34 @@ else()
     src/widget/woverviewhsv.cpp
     src/widget/woverviewlmh.cpp
     src/widget/woverviewrgb.cpp
-    src/widget/wspinny.cpp
-    src/widget/wvumetergl.cpp
     src/widget/wwaveformviewer.cpp
   )
   if(QOPENGL)
     target_sources(mixxx-lib PRIVATE
       src/widget/openglwindow.cpp
       src/widget/wglwidgetqopengl.cpp
+      src/widget/qopengl/wvumetergl.cpp
+      src/widget/qopengl/wspinny.cpp
+      src/waveform/renderers/qopengl/waveformrenderbackground.cpp
+      src/waveform/renderers/qopengl/waveformrenderbeat.cpp
+      src/waveform/renderers/qopengl/waveformrenderer.cpp
+      src/waveform/renderers/qopengl/waveformrendererendoftrack.cpp
+      src/waveform/renderers/qopengl/waveformrendererpreroll.cpp
+      src/waveform/renderers/qopengl/waveformrendererrgb.cpp
+      src/waveform/renderers/qopengl/waveformrenderersignalbase.cpp
+      src/waveform/renderers/qopengl/waveformrendermark.cpp
+      src/waveform/renderers/qopengl/waveformrendermarkrange.cpp
+      src/waveform/widgets/qopengl/waveformwidget.cpp
+      src/waveform/widgets/qopengl/rgbwaveformwidget.cpp
+      src/waveform/widgets/qopengl/waveformwidget.cpp
+      src/waveform/widgets/qopengl/rgbwaveformwidget.cpp
     )
   else()
     target_sources(mixxx-lib PRIVATE
       src/waveform/sharedglcontext.cpp
       src/widget/wglwidgetqglwidget.cpp
+      src/widget/wvumetergl.cpp
+      src/widget/wspinny.cpp
     )
   endif()
 endif()

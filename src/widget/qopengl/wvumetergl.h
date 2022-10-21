@@ -1,8 +1,9 @@
 #pragma once
 
-#ifdef MIXXX_USE_QOPENGL
-#include "widget/qopengl/wvumetergl.h"
-#else
+#include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLTexture>
+#include <memory>
 
 #include "skin/legacy/skincontext.h"
 #include "util/duration.h"
@@ -16,6 +17,7 @@ class WVuMeterGL : public WGLWidget, public WBaseWidget {
     Q_OBJECT
   public:
     explicit WVuMeterGL(QWidget* parent = nullptr);
+    ~WVuMeterGL() override;
 
     void setup(const QDomNode& node, const SkinContext& context);
     void setPixmapBackground(
@@ -29,6 +31,8 @@ class WVuMeterGL : public WGLWidget, public WBaseWidget {
             double scaleFactor);
     void onConnectedControlChanged(double dParameter, double dValue) override;
 
+    void initializeGL() override;
+
   public slots:
     void render(VSyncThread* vSyncThread);
     void swap();
@@ -37,6 +41,9 @@ class WVuMeterGL : public WGLWidget, public WBaseWidget {
     void updateState(mixxx::Duration elapsed);
 
   private:
+    void drawNativeGL();
+    void drawTexture(QOpenGLTexture* texture, const QRectF& sourceRect, const QRectF& targetRect);
+
     void paintEvent(QPaintEvent* /*unused*/) override;
     void showEvent(QShowEvent* /*unused*/) override;
     void setPeak(double parameter);
@@ -74,6 +81,8 @@ class WVuMeterGL : public WGLWidget, public WBaseWidget {
     double m_dPeakHoldCountdownMs;
 
     QColor m_qBgColor;
-};
 
-#endif // not defined MIXXX_USE_QOPENGL
+    std::unique_ptr<QOpenGLTexture> m_pTextureBack;
+    std::unique_ptr<QOpenGLTexture> m_pTextureVu;
+    QOpenGLShaderProgram m_shaderProgram;
+};

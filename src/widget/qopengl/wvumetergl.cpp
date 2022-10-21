@@ -1,10 +1,10 @@
-#include "widget/wvumetergl.h"
+#include "widget/qopengl/wvumetergl.h"
 
 #include "util/math.h"
 #include "util/timer.h"
 #include "util/widgethelper.h"
 #include "waveform/vsyncthread.h"
-#include "widget/moc_wvumetergl.cpp"
+#include "widget/qopengl/moc_wvumetergl.cpp"
 #include "widget/wpixmapstore.h"
 
 #define DEFAULT_FALLTIME 20
@@ -28,6 +28,13 @@ WVuMeterGL::WVuMeterGL(QWidget* parent)
           m_iPeakHoldTime(0),
           m_iPeakFallTime(0),
           m_dPeakHoldCountdownMs(0) {
+}
+
+WVuMeterGL::~WVuMeterGL() {
+    makeCurrentIfNeeded();
+    m_pTextureBack.reset();
+    m_pTextureVu.reset();
+    doneCurrent();
 }
 
 void WVuMeterGL::setup(const QDomNode& node, const SkinContext& context) {
@@ -154,8 +161,66 @@ void WVuMeterGL::showEvent(QShowEvent* e) {
     WGLWidget::showEvent(e);
     // Find the base color recursively in parent widget.
     m_qBgColor = mixxx::widgethelper::findBaseColor(this);
+    // Force a rerender when the openglwindow is exposed.
     // 2 pendings renders, in case we have triple buffering
     m_iRendersPending = 2;
+}
+
+void WVuMeterGL::initializeGL() {
+    if (m_pPixmapBack.isNull()) {
+        m_pTextureBack.reset();
+    } else {
+        m_pTextureBack.reset(new QOpenGLTexture(m_pPixmapBack->toImage()));
+        m_pTextureBack->setMinificationFilter(QOpenGLTexture::Linear);
+        m_pTextureBack->setMagnificationFilter(QOpenGLTexture::Linear);
+        m_pTextureBack->setWrapMode(QOpenGLTexture::ClampToBorder);
+    }
+
+    if (m_pPixmapVu.isNull()) {
+        m_pTextureVu.reset();
+    } else {
+        m_pTextureVu.reset(new QOpenGLTexture(m_pPixmapVu->toImage()));
+        m_pTextureVu->setMinificationFilter(QOpenGLTexture::Linear);
+        m_pTextureVu->setMagnificationFilter(QOpenGLTexture::Linear);
+        m_pTextureVu->setWrapMode(QOpenGLTexture::ClampToBorder);
+    }
+
+    QString vertexShaderCode =
+            "\
+uniform mat4 matrix;\n\
+attribute vec4 position;\n\
+attribute vec3 texcoor;\n\
+varying vec3 vTexcoor;\n\
+void main()\n\
+{\n\
+    vTexcoor = texcoor;\n\
+    gl_Position = matrix * position;\n\
+}\n";
+
+    QString fragmentShaderCode =
+            "\
+uniform sampler2D sampler;\n\
+varying vec3 vTexcoor;\n\
+void main()\n\
+{\n\
+    gl_FragColor = texture2D(sampler, vec2(vTexcoor.x, vTexcoor.y));\n\
+}\n";
+
+    if (!m_shaderProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderCode)) {
+        return;
+    }
+
+    if (!m_shaderProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderCode)) {
+        return;
+    }
+
+    if (!m_shaderProgram.link()) {
+        return;
+    }
+
+    if (!m_shaderProgram.bind()) {
+        return;
+    }
 }
 
 void WVuMeterGL::render(VSyncThread* vSyncThread) {
@@ -171,51 +236,61 @@ void WVuMeterGL::render(VSyncThread* vSyncThread) {
         return;
     }
 
-    QPainter p(paintDevice());
-    // fill the background, in case the image contains transparency
-    p.fillRect(rect(), m_qBgColor);
+    makeCurrentIfNeeded();
+    drawNativeGL();
+    doneCurrent();
+}
 
-    if (!m_pPixmapBack.isNull()) {
+void WVuMeterGL::drawNativeGL() {
+    glClearColor(m_qBgColor.redF(), m_qBgColor.greenF(), m_qBgColor.blueF(), 1.f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    m_shaderProgram.bind();
+
+    QMatrix4x4 matrix;
+    matrix.ortho(QRectF(0, 0, width(), height()));
+
+    int matrixLocation = m_shaderProgram.uniformLocation("matrix");
+
+    m_shaderProgram.setUniformValue(matrixLocation, matrix);
+
+    if (m_pTextureBack) {
         // Draw background.
         QRectF sourceRect(0, 0, m_pPixmapBack->width(), m_pPixmapBack->height());
-        m_pPixmapBack->draw(rect(), &p, sourceRect);
+        drawTexture(m_pTextureBack.get(), rect(), sourceRect);
     }
 
     const double widgetWidth = width();
     const double widgetHeight = height();
-    const double pixmapWidth = m_pPixmapVu.isNull() ? 0 : m_pPixmapVu->width();
-    const double pixmapHeight = m_pPixmapVu.isNull() ? 0 : m_pPixmapVu->height();
 
-    // Draw (part of) vu
-    if (m_bHorizontal) {
-        {
+    if (m_pTextureVu) {
+        const double pixmapWidth = m_pTextureVu->width();
+        const double pixmapHeight = m_pTextureVu->height();
+        if (m_bHorizontal) {
             const double widgetPosition = math_clamp(widgetWidth * m_dParameter, 0.0, widgetWidth);
             QRectF targetRect(0, 0, widgetPosition, widgetHeight);
 
-            if (!m_pPixmapVu.isNull()) {
-                const double pixmapPosition = math_clamp(
-                        pixmapWidth * m_dParameter, 0.0, pixmapWidth);
-                QRectF sourceRect(0, 0, pixmapPosition, pixmapHeight);
-                m_pPixmapVu->draw(targetRect, &p, sourceRect);
-            } else {
-                // fallback to green rectangle
-                p.fillRect(targetRect, QColor(0, 255, 0));
-            }
-        }
+            const double pixmapPosition = math_clamp(
+                    pixmapWidth * m_dParameter, 0.0, pixmapWidth);
+            QRectF sourceRect(0, 0, pixmapPosition, pixmapHeight);
+            drawTexture(m_pTextureVu.get(), targetRect, sourceRect);
 
-        if (m_iPeakHoldSize > 0 && m_dPeakParameter > 0.0 &&
-                m_dPeakParameter > m_dParameter) {
-            const double widgetPeakPosition = math_clamp(
-                    widgetWidth * m_dPeakParameter, 0.0, widgetWidth);
-            const double pixmapPeakHoldSize = static_cast<double>(m_iPeakHoldSize);
-            const double widgetPeakHoldSize = widgetWidth * pixmapPeakHoldSize / pixmapWidth;
+            if (m_iPeakHoldSize > 0 && m_dPeakParameter > 0.0 &&
+                    m_dPeakParameter > m_dParameter) {
+                const double widgetPeakPosition = math_clamp(
+                        widgetWidth * m_dPeakParameter, 0.0, widgetWidth);
+                const double pixmapPeakHoldSize = static_cast<double>(m_iPeakHoldSize);
+                const double widgetPeakHoldSize = widgetWidth * pixmapPeakHoldSize / pixmapWidth;
 
-            QRectF targetRect(widgetPeakPosition - widgetPeakHoldSize,
-                    0,
-                    widgetPeakHoldSize,
-                    widgetHeight);
+                QRectF targetRect(widgetPeakPosition - widgetPeakHoldSize,
+                        0,
+                        widgetPeakHoldSize,
+                        widgetHeight);
 
-            if (!m_pPixmapVu.isNull()) {
                 const double pixmapPeakPosition = math_clamp(
                         pixmapWidth * m_dPeakParameter, 0.0, pixmapWidth);
 
@@ -224,43 +299,31 @@ void WVuMeterGL::render(VSyncThread* vSyncThread) {
                                 0,
                                 pixmapPeakHoldSize,
                                 pixmapHeight);
-                m_pPixmapVu->draw(targetRect, &p, sourceRect);
-            } else {
-                // fallback to green rectangle
-                p.fillRect(targetRect, QColor(0, 255, 0));
+                drawTexture(m_pTextureVu.get(), targetRect, sourceRect);
             }
-        }
-    } else {
-        // vertical
-        {
+        } else {
+            // vertical
             const double widgetPosition =
                     math_clamp(widgetHeight * m_dParameter, 0.0, widgetHeight);
             QRectF targetRect(0, widgetHeight - widgetPosition, widgetWidth, widgetPosition);
 
-            if (!m_pPixmapVu.isNull()) {
-                const double pixmapPosition = math_clamp(
-                        pixmapHeight * m_dParameter, 0.0, pixmapHeight);
-                QRectF sourceRect(0, pixmapHeight - pixmapPosition, pixmapWidth, pixmapPosition);
-                m_pPixmapVu->draw(targetRect, &p, sourceRect);
-            } else {
-                // fallback to green rectangle
-                p.fillRect(targetRect, QColor(0, 255, 0));
-            }
-        }
+            const double pixmapPosition = math_clamp(
+                    pixmapHeight * m_dParameter, 0.0, pixmapHeight);
+            QRectF sourceRect(0, pixmapHeight - pixmapPosition, pixmapWidth, pixmapPosition);
+            drawTexture(m_pTextureVu.get(), targetRect, sourceRect);
 
-        if (m_iPeakHoldSize > 0 && m_dPeakParameter > 0.0 &&
-                m_dPeakParameter > m_dParameter) {
-            const double widgetPeakPosition = math_clamp(
-                    widgetHeight * m_dPeakParameter, 0.0, widgetHeight);
-            const double pixmapPeakHoldSize = static_cast<double>(m_iPeakHoldSize);
-            const double widgetPeakHoldSize = widgetHeight * pixmapPeakHoldSize / pixmapHeight;
+            if (m_iPeakHoldSize > 0 && m_dPeakParameter > 0.0 &&
+                    m_dPeakParameter > m_dParameter) {
+                const double widgetPeakPosition = math_clamp(
+                        widgetHeight * m_dPeakParameter, 0.0, widgetHeight);
+                const double pixmapPeakHoldSize = static_cast<double>(m_iPeakHoldSize);
+                const double widgetPeakHoldSize = widgetHeight * pixmapPeakHoldSize / pixmapHeight;
 
-            QRectF targetRect(0,
-                    widgetHeight - widgetPeakPosition,
-                    widgetWidth,
-                    widgetPeakHoldSize);
+                QRectF targetRect(0,
+                        widgetHeight - widgetPeakPosition,
+                        widgetWidth,
+                        widgetPeakHoldSize);
 
-            if (!m_pPixmapVu.isNull()) {
                 const double pixmapPeakPosition = math_clamp(
                         pixmapHeight * m_dPeakParameter, 0.0, pixmapHeight);
 
@@ -268,10 +331,7 @@ void WVuMeterGL::render(VSyncThread* vSyncThread) {
                         pixmapHeight - pixmapPeakPosition,
                         pixmapWidth,
                         pixmapPeakHoldSize);
-                m_pPixmapVu->draw(targetRect, &p, sourceRect);
-            } else {
-                // fallback to green rectangle
-                p.fillRect(targetRect, QColor(0, 255, 0));
+                drawTexture(m_pTextureVu.get(), targetRect, sourceRect);
             }
         }
     }
@@ -283,10 +343,46 @@ void WVuMeterGL::render(VSyncThread* vSyncThread) {
 }
 
 void WVuMeterGL::swap() {
+    // TODO @m0dB move shouldRender outside?
     if (!m_bSwapNeeded || !shouldRender()) {
         return;
     }
     makeCurrentIfNeeded();
     swapBuffers();
+    doneCurrent();
     m_bSwapNeeded = false;
+}
+
+void WVuMeterGL::drawTexture(QOpenGLTexture* texture,
+        const QRectF& targetRect,
+        const QRectF& sourceRect) {
+    const float texx1 = sourceRect.x() / texture->width();
+    const float texy1 = sourceRect.y() / texture->height();
+    const float texx2 = (sourceRect.x() + sourceRect.width()) / texture->width();
+    const float texy2 = (sourceRect.y() + sourceRect.height()) / texture->height();
+
+    const float posx1 = targetRect.x();
+    const float posy1 = targetRect.y();
+    const float posx2 = targetRect.x() + targetRect.width();
+    const float posy2 = targetRect.y() + targetRect.height();
+
+    const float posarray[] = {posx1, posy1, posx2, posy1, posx1, posy2, posx2, posy2};
+    const float texarray[] = {texx1, texy1, texx2, texy1, texx1, texy2, texx2, texy2};
+
+    int samplerLocation = m_shaderProgram.uniformLocation("sampler");
+    int positionLocation = m_shaderProgram.attributeLocation("position");
+    int texcoordLocation = m_shaderProgram.attributeLocation("texcoor");
+
+    m_shaderProgram.enableAttributeArray(positionLocation);
+    m_shaderProgram.setAttributeArray(
+            positionLocation, GL_FLOAT, posarray, 2);
+    m_shaderProgram.enableAttributeArray(texcoordLocation);
+    m_shaderProgram.setAttributeArray(
+            texcoordLocation, GL_FLOAT, texarray, 2);
+
+    m_shaderProgram.setUniformValue(samplerLocation, 0);
+
+    texture->bind();
+
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }

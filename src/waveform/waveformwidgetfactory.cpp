@@ -38,6 +38,10 @@
 #include "waveform/widgets/qtwaveformwidget.h"
 #include "waveform/widgets/rgbwaveformwidget.h"
 #include "waveform/widgets/softwarewaveformwidget.h"
+#include "waveform/widgets/waveformwidgetabstract.h"
+#ifdef MIXXX_USE_QOPENGL
+#include "waveform/widgets/qopengl/rgbwaveformwidget.h"
+#endif
 #include "widget/wvumeter.h"
 #include "widget/wvumetergl.h"
 #include "widget/wwaveformviewer.h"
@@ -678,7 +682,17 @@ void WaveformWidgetFactory::render() {
                 if (!shouldRenderWaveforms[static_cast<int>(i)]) {
                     continue;
                 }
+#ifdef MIXXX_USE_QOPENGL
+                qopengl::IWaveformWidget* qopenglWaveformWidget =
+                        pWaveformWidget->qopenglWaveformWidget();
+                if (qopenglWaveformWidget) {
+                    qopenglWaveformWidget->renderGL();
+                } else {
+                    pWaveformWidget->render();
+                }
+#else
                 pWaveformWidget->render();
+#endif
                 //qDebug() << "render" << i << m_vsyncThread->elapsed();
             }
         }
@@ -736,6 +750,7 @@ void WaveformWidgetFactory::swap() {
                 if (glw != nullptr) {
                     glw->makeCurrentIfNeeded();
                     glw->swapBuffers();
+                    glw->doneCurrent();
                 }
                 //qDebug() << "swap x" << m_vsyncThread->elapsed();
             }
@@ -902,6 +917,15 @@ void WaveformWidgetFactory::evaluateWidgets() {
             useOpenGLShaders = QtRGBWaveformWidget::useOpenGLShaders();
             developerOnly = QtRGBWaveformWidget::developerOnly();
             break;
+#ifdef MIXXX_USE_QOPENGL
+        case WaveformWidgetType::QOpenGLRGBWaveform:
+            widgetName = qopengl::RGBWaveformWidget::getWaveformWidgetName();
+            useOpenGl = qopengl::RGBWaveformWidget::useOpenGl();
+            useOpenGles = qopengl::RGBWaveformWidget::useOpenGles();
+            useOpenGLShaders = qopengl::RGBWaveformWidget::useOpenGLShaders();
+            developerOnly = qopengl::RGBWaveformWidget::developerOnly();
+            break;
+#endif
         default:
             DEBUG_ASSERT(!"Unexpected WaveformWidgetType");
             continue;
@@ -1008,6 +1032,11 @@ WaveformWidgetAbstract* WaveformWidgetFactory::createWaveformWidget(
         case WaveformWidgetType::QtRGBWaveform:
             widget = new QtRGBWaveformWidget(viewer->getGroup(), viewer);
             break;
+#ifdef MIXXX_USE_QOPENGL
+        case WaveformWidgetType::QOpenGLRGBWaveform:
+            widget = new qopengl::RGBWaveformWidget(viewer->getGroup(), viewer);
+            break;
+#endif
         default:
         //case WaveformWidgetType::SoftwareSimpleWaveform: TODO: (vrince)
         //case WaveformWidgetType::EmptyWaveform:
