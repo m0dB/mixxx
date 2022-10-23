@@ -14,16 +14,14 @@
 #include "widget/wskincolor.h"
 #include "widget/wwidget.h"
 
-using namespace qopengl;
-
-WaveformRenderMarkRange::WaveformRenderMarkRange(WaveformWidgetRenderer* waveformWidget)
+qopengl::WaveformRenderMarkRange::WaveformRenderMarkRange(WaveformWidgetRenderer* waveformWidget)
         : WaveformRenderer(waveformWidget) {
 }
 
-WaveformRenderMarkRange::~WaveformRenderMarkRange() {
+qopengl::WaveformRenderMarkRange::~WaveformRenderMarkRange() {
 }
 
-void WaveformRenderMarkRange::initializeGL() {
+void qopengl::WaveformRenderMarkRange::initializeGL() {
     QString vertexShaderCode =
             "\
 uniform mat4 matrix;\n\
@@ -58,7 +56,7 @@ void main()\n\
         return;
     }
 }
-void WaveformRenderMarkRange::fillRect(
+void qopengl::WaveformRenderMarkRange::fillRect(
         const QRectF& rect, QColor color) {
     const float posx1 = rect.x();
     const float posx2 = rect.x() + rect.width();
@@ -79,7 +77,7 @@ void WaveformRenderMarkRange::fillRect(
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-void WaveformRenderMarkRange::setup(const QDomNode& node, const SkinContext& context) {
+void qopengl::WaveformRenderMarkRange::setup(const QDomNode& node, const SkinContext& context) {
     m_markRanges.clear();
     m_markRanges.reserve(1);
 
@@ -97,7 +95,7 @@ void WaveformRenderMarkRange::setup(const QDomNode& node, const SkinContext& con
     }
 }
 
-void WaveformRenderMarkRange::renderGL() {
+void qopengl::WaveformRenderMarkRange::renderGL() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 

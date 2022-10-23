@@ -18,31 +18,29 @@ namespace {
 constexpr int kMaxCueLabelLength = 23;
 } // namespace
 
-using namespace qopengl;
-
-WaveformRenderMark::WaveformRenderMark(WaveformWidgetRenderer* waveformWidget)
+qopengl::WaveformRenderMark::WaveformRenderMark(WaveformWidgetRenderer* waveformWidget)
         : WaveformRenderer(waveformWidget) {
 }
 
-WaveformRenderMark::~WaveformRenderMark() {
+qopengl::WaveformRenderMark::~WaveformRenderMark() {
     for (const auto& pMark : m_marks) {
         pMark->m_pTexture.reset();
     }
 }
 
-void WaveformRenderMark::setup(const QDomNode& node, const SkinContext& context) {
+void qopengl::WaveformRenderMark::setup(const QDomNode& node, const SkinContext& context) {
     WaveformSignalColors signalColors = *m_waveformRenderer->getWaveformSignalColors();
     m_marks.setup(m_waveformRenderer->getGroup(), node, context, signalColors);
 }
 
-void WaveformRenderMark::initializeGL() {
+void qopengl::WaveformRenderMark::initializeGL() {
     initGradientShader();
     initTextureShader();
 
     generatePlayPosMarkTexture();
 }
 
-void WaveformRenderMark::initGradientShader() {
+void qopengl::WaveformRenderMark::initGradientShader() {
     QString vertexShaderCode =
             "\
 uniform mat4 matrix;\n\
@@ -82,7 +80,7 @@ void main()\n\
     }
 }
 
-void WaveformRenderMark::initTextureShader() {
+void qopengl::WaveformRenderMark::initTextureShader() {
     QString vertexShaderCode =
             "\
 uniform mat4 matrix;\n\
@@ -122,7 +120,7 @@ void main()\n\
     }
 }
 
-void WaveformRenderMark::drawTexture(int x, int y, QOpenGLTexture* texture) {
+void qopengl::WaveformRenderMark::drawTexture(int x, int y, QOpenGLTexture* texture) {
     const float devicePixelRatio = m_waveformRenderer->getDevicePixelRatio();
     const float texx1 = 0.f;
     const float texy1 = 0.f;
@@ -163,7 +161,7 @@ void WaveformRenderMark::drawTexture(int x, int y, QOpenGLTexture* texture) {
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-void WaveformRenderMark::fillRectWithGradient(
+void qopengl::WaveformRenderMark::fillRectWithGradient(
         const QRectF& rect, QColor color, Qt::Orientation orientation) {
     const float grdx1 = 0.f;
     const float grdy1 = 0.f;
@@ -200,7 +198,7 @@ void WaveformRenderMark::fillRectWithGradient(
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-void WaveformRenderMark::renderGL() {
+void qopengl::WaveformRenderMark::renderGL() {
     const float devicePixelRatio = m_waveformRenderer->getDevicePixelRatio();
     QMap<WaveformMarkPointer, int> marksOnScreen;
 
@@ -327,7 +325,7 @@ void WaveformRenderMark::renderGL() {
     drawTexture(drawOffset, 0, m_pPlayPosMarkTexture.get());
 }
 
-void WaveformRenderMark::generatePlayPosMarkTexture() {
+void qopengl::WaveformRenderMark::generatePlayPosMarkTexture() {
     float imgwidth;
     float imgheight;
 
@@ -419,7 +417,7 @@ void WaveformRenderMark::generatePlayPosMarkTexture() {
     m_pPlayPosMarkTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
 }
 
-void WaveformRenderMark::drawTriangle(QPainter* painter,
+void qopengl::WaveformRenderMark::drawTriangle(QPainter* painter,
         const QBrush& fillColor,
         QPointF p0,
         QPointF p1,
@@ -433,14 +431,14 @@ void WaveformRenderMark::drawTriangle(QPainter* painter,
     painter->fillPath(triangle, fillColor);
 }
 
-void WaveformRenderMark::resizeGL(int, int) {
+void qopengl::WaveformRenderMark::resizeGL(int, int) {
     // Delete all marks' images. New images will be created on next paint.
     for (const auto& pMark : m_marks) {
         pMark->m_image = QImage();
     }
 }
 
-void WaveformRenderMark::onSetTrack() {
+void qopengl::WaveformRenderMark::onSetTrack() {
     slotCuesUpdated();
 
     TrackPointer trackInfo = m_waveformRenderer->getTrackInfo();
@@ -450,14 +448,14 @@ void WaveformRenderMark::onSetTrack() {
     connect(trackInfo.get(),
             &Track::cuesUpdated,
             this,
-            &WaveformRenderMark::slotCuesUpdated);
+            &qopengl::WaveformRenderMark::slotCuesUpdated);
 }
 
-void WaveformRenderMark::slotCuesUpdated() {
+void qopengl::WaveformRenderMark::slotCuesUpdated() {
     m_bCuesUpdates = true;
 }
 
-void WaveformRenderMark::checkCuesUpdated() {
+void qopengl::WaveformRenderMark::checkCuesUpdated() {
     if (!m_bCuesUpdates) {
         return;
     }
@@ -496,7 +494,7 @@ void WaveformRenderMark::checkCuesUpdated() {
     }
 }
 
-void WaveformRenderMark::generateMarkImage(WaveformMarkPointer pMark) {
+void qopengl::WaveformRenderMark::generateMarkImage(WaveformMarkPointer pMark) {
     // Load the pixmap from file.
     // If that succeeds loading the text and stroke is skipped.
     const float devicePixelRatio = m_waveformRenderer->getDevicePixelRatio();
