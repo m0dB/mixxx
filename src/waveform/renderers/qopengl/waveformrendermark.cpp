@@ -2,6 +2,7 @@
 
 #include <QDomNode>
 #include <QOpenGLTexture>
+#include <QPainterPath>
 
 #include "control/controlobject.h"
 #include "engine/controls/cuecontrol.h"

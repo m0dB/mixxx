@@ -1,5 +1,7 @@
 /// functions to do fixed point calculations, used by qopengl::WaveformRendererRGB
 
+#include <cmath>
+
 // float to fixed point with 8 fractional bits, clipped at 4.0
 inline uint32_t toFrac8(float x) {
     return std::min<uint32_t>(static_cast<uint32_t>(std::max(x, 0.f) * 256.f), 4 * 256);
