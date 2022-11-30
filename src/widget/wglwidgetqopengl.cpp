@@ -8,6 +8,7 @@ WGLWidget::WGLWidget(QWidget* parent)
 }
 
 WGLWidget::~WGLWidget() {
+    disconnect(m_pContainerWidget);
     if (m_pOpenGLWindow) {
         m_pOpenGLWindow->widgetDestroyed();
     }
@@ -24,6 +25,8 @@ void WGLWidget::showEvent(QShowEvent* event) {
         m_pContainerWidget = createWindowContainer(m_pOpenGLWindow, this);
         m_pContainerWidget->resize(size());
         m_pContainerWidget->show();
+        
+        connect(m_pOpenGLWindow, &QOpenGLWindow::frameSwapped, m_pContainerWidget, qOverload<>(&QWidget::update));
     }
     QWidget::showEvent(event);
 }
@@ -67,6 +70,7 @@ void WGLWidget::swapBuffers() {
         makeCurrentIfNeeded();
         m_pOpenGLWindow->context()->swapBuffers(m_pOpenGLWindow->context()->surface());
         doneCurrent();
+        emit m_pOpenGLWindow->frameSwapped();
     }
 }
 
