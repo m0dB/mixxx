@@ -1,6 +1,7 @@
 #include "waveform/widgets/qopengl/waveformwidget.h"
 
 #include "waveform/renderers/qopengl/iwaveformrenderer.h"
+#include "waveform/waveformwidgetfactory.h"
 #include "widget/wwaveformviewer.h"
 
 using namespace qopengl;
@@ -40,6 +41,7 @@ void WaveformWidget::initializeGL() {
         m_rendererStack[i]->qopenglWaveformRenderer()->initializeGL();
     }
     doneCurrent();
+    moveToThread(WaveformWidgetFactory::instance()->getVSyncThread());
 }
 
 void WaveformWidget::handleEventFromWindow(QEvent* ev) {

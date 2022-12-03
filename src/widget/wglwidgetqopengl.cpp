@@ -62,6 +62,10 @@ void WGLWidget::initializeGL() {
     // to be implemented in derived widgets if needed
 }
 
+void WGLWidget::exposed() {
+    // to be implemented in derived widgets if needed
+}
+
 void WGLWidget::swapBuffers() {
     if (shouldRender()) {
         makeCurrentIfNeeded();
@@ -72,4 +76,13 @@ void WGLWidget::swapBuffers() {
 
 bool WGLWidget::shouldRender() const {
     return m_pOpenGLWindow && m_pOpenGLWindow->isExposed();
+}
+
+void WGLWidget::moveToThread(QThread* thread) {
+    m_pOpenGLWindow->context()->moveToThread(thread);
+    m_thread = thread;
+}
+
+bool WGLWidget::movedToThread(QThread* thread) const {
+    return m_thread == thread;
 }

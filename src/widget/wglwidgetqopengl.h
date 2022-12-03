@@ -17,6 +17,7 @@ class WGLWidget : public QWidget {
   private:
     OpenGLWindow* m_pOpenGLWindow{};
     QWidget* m_pContainerWidget{};
+    QThread* m_thread{};
 
   public:
     WGLWidget(QWidget* parent);
@@ -38,6 +39,10 @@ class WGLWidget : public QWidget {
     // called by OpenGLWindow
     virtual void handleEventFromWindow(QEvent* ev);
     virtual void initializeGL();
+    virtual void exposed();
+
+    bool movedToThread(QThread* thread) const;
+    void moveToThread(QThread* thread);
 
   protected:
     QPaintDevice* paintDevice();

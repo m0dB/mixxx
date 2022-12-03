@@ -686,9 +686,11 @@ void WaveformWidgetFactory::render() {
                 qopengl::IWaveformWidget* qopenglWaveformWidget =
                         pWaveformWidget->qopenglWaveformWidget();
                 if (qopenglWaveformWidget) {
-                    qopenglWaveformWidget->renderGL();
+                    if (pWaveformWidget->getGLWidget()->movedToThread(m_vsyncThread)) {
+                        qopenglWaveformWidget->renderGL();
+                    }
                 } else {
-                    pWaveformWidget->render();
+                    // pWaveformWidget->render();
                 }
 #else
                 pWaveformWidget->render();
@@ -699,16 +701,16 @@ void WaveformWidgetFactory::render() {
 
         // WSpinnys are also double-buffered WGLWidgets, like all the waveform
         // renderers. Render all the WSpinny widgets now.
-        emit renderSpinnies(m_vsyncThread);
+        //!!! emit renderSpinnies(m_vsyncThread);
         // Same for WVuMeterGL. Note that we are either using WVuMeter or WVuMeterGL.
         // If we are using WVuMeter, this does nothing
-        emit renderVuMeters(m_vsyncThread);
+        //!!! emit renderVuMeters(m_vsyncThread);
 
         // Notify all other waveform-like widgets (e.g. WSpinny's) that they should
         // update.
-        //int t1 = m_vsyncThread->elapsed();
-        emit waveformUpdateTick();
-        //qDebug() << "emit" << m_vsyncThread->elapsed() - t1;
+        // int t1 = m_vsyncThread->elapsed();
+        //!!! emit waveformUpdateTick();
+        // qDebug() << "emit" << m_vsyncThread->elapsed() - t1;
 
         m_frameCnt += 1.0f;
         mixxx::Duration timeCnt = m_time.elapsed();
@@ -723,14 +725,13 @@ void WaveformWidgetFactory::render() {
     m_pVisualsManager->process(m_endOfTrackWarningTime);
     m_pGuiTick->process();
 
-    //qDebug() << "refresh end" << m_vsyncThread->elapsed();
-    m_vsyncThread->vsyncSlotFinished();
+    // qDebug() << "refresh end" << m_vsyncThread->elapsed();
 }
 
 void WaveformWidgetFactory::swap() {
     ScopedTimer t("WaveformWidgetFactory::swap() %1waveforms",
             static_cast<int>(m_waveformWidgetHolders.size()));
-
+    bool swapped = false;
     // Do this in an extra slot to be sure to hit the desired interval
     if (!m_skipRender) {
         if (m_type) {   // no regular updates for an empty waveform
@@ -747,23 +748,28 @@ void WaveformWidgetFactory::swap() {
                     continue;
                 }
                 WGLWidget* glw = pWaveformWidget->getGLWidget();
-                if (glw != nullptr) {
+                if (glw != nullptr && glw->movedToThread(m_vsyncThread)) {
                     glw->makeCurrentIfNeeded();
                     glw->swapBuffers();
                     glw->doneCurrent();
+                    swapped = true;
                 }
                 //qDebug() << "swap x" << m_vsyncThread->elapsed();
             }
         }
-        // WSpinnys are also double-buffered QGLWidgets, like all the waveform
-        // renderers. Swap all the WSpinny widgets now.
-        emit swapSpinnies();
-        // Same for WVuMeterGL. Note that we are either using WVuMeter or WVuMeterGL
-        // If we are using WVuMeter, this does nothing
-        emit swapVuMeters();
+        if (swapped) {
+            // WSpinnys are also double-buffered QGLWidgets, like all the waveform
+            // renderers. Swap all the WSpinny widgets now.
+
+            //!!! emit swapSpinnies();
+            //  Same for WVuMeterGL. Note that we are either using WVuMeter or WVuMeterGL
+            //  If we are using WVuMeter, this does nothing
+            //!!! emit swapVuMeters();
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
     }
-    //qDebug() << "swap end" << m_vsyncThread->elapsed();
-    m_vsyncThread->vsyncSlotFinished();
+    // qDebug() << "swap end" << m_vsyncThread->elapsed();
 }
 
 WaveformWidgetType::Type WaveformWidgetFactory::autoChooseWidgetType() const {
@@ -1079,11 +1085,13 @@ void WaveformWidgetFactory::startVSync(GuiTick* pGuiTick, VisualsManager* pVisua
     connect(m_vsyncThread,
             &VSyncThread::vsyncRender,
             this,
-            &WaveformWidgetFactory::render);
+            &WaveformWidgetFactory::render,
+            Qt::DirectConnection);
     connect(m_vsyncThread,
             &VSyncThread::vsyncSwap,
             this,
-            &WaveformWidgetFactory::swap);
+            &WaveformWidgetFactory::swap,
+            Qt::DirectConnection);
 
     m_vsyncThread->start(QThread::NormalPriority);
 }
@@ -1109,4 +1117,8 @@ int WaveformWidgetFactory::findHandleIndexFromType(WaveformWidgetType::Type type
         }
     }
     return index;
+}
+
+QThread* WaveformWidgetFactory::getVSyncThread() const {
+    return m_vsyncThread;
 }

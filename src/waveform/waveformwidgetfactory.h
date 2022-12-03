@@ -201,4 +201,7 @@ class WaveformWidgetFactory : public QObject, public Singleton<WaveformWidgetFac
     double m_actualFrameRate;
     int m_vSyncType;
     double m_playMarkerPosition;
+
+  public:
+    QThread* getVSyncThread() const;
 };

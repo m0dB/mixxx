@@ -25,7 +25,6 @@ VSyncThread::VSyncThread(QObject* pParent)
 
 VSyncThread::~VSyncThread() {
     m_bDoRendering = false;
-    m_semaVsyncSlot.release(2); // Two slots
     wait();
     //delete m_glw;
 }
@@ -43,10 +42,8 @@ void VSyncThread::run() {
 
             // renders the waveform, Possible delayed due to anti tearing
             emit vsyncRender();
-            m_semaVsyncSlot.acquire();
 
             emit vsyncSwap(); // swaps the new waveform to front
-            m_semaVsyncSlot.acquire();
 
             m_sinceLastSwap = m_timer.restart();
             m_waitToSwapMicros = 1000;
@@ -56,7 +53,6 @@ void VSyncThread::run() {
 
             // wait until rendering was scheduled. It might be delayed due a
             // pending swap (depends one driver vSync settings)
-            m_semaVsyncSlot.acquire();
 
             // qDebug() << "ST_TIMER                      " << lastMicros << restMicros;
             int remainingForSwap = m_waitToSwapMicros - static_cast<int>(
@@ -71,7 +67,6 @@ void VSyncThread::run() {
 
             // wait until swap occurred. It might be delayed due to driver vSync
             // settings.
-            m_semaVsyncSlot.acquire();
 
             // <- Assume we are VSynced here ->
             m_sinceLastSwap = m_timer.restart();
@@ -125,10 +120,6 @@ int VSyncThread::fromTimerToNextSyncMicros(const PerformanceTimer& timer) {
 
 int VSyncThread::droppedFrames() {
     return m_droppedFrames;
-}
-
-void VSyncThread::vsyncSlotFinished() {
-    m_semaVsyncSlot.release();
 }
 
 void VSyncThread::getAvailableVSyncTypes(QList<QPair<int, QString>>* pList) {
