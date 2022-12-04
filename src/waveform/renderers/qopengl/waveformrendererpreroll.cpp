@@ -72,6 +72,7 @@ void WaveformRendererPreroll::renderGL() {
     // to indicate the respective zones.
     bool preRollVisible = firstDisplayedPosition < 0;
     bool postRollVisible = lastDisplayedPosition > 1;
+    const int maxVertexCount = m_vertices.size();
     int vertexCount = 0;
     if (preRollVisible || postRollVisible) {
         const double playMarkerPositionFrac = m_waveformRenderer->getPlayMarkerPosition();
@@ -117,7 +118,7 @@ void WaveformRendererPreroll::renderGL() {
 
             float x = triangleTipVSamplePosition / vSamplesPerPixel;
 
-            for (; triangleTipVSamplePosition > 0;
+            for (; triangleTipVSamplePosition > 0 && vertexCount + 6 <= maxVertexCount;
                     triangleTipVSamplePosition -= polyVSampleOffset) {
                 m_vertices[vertexCount++] = x;
                 m_vertices[vertexCount++] = halfBreadth;
@@ -139,7 +140,8 @@ void WaveformRendererPreroll::renderGL() {
 
             float x = triangleTipVSamplePosition / vSamplesPerPixel;
 
-            for (; triangleTipVSamplePosition < numberOfVSamples;
+            for (; triangleTipVSamplePosition < numberOfVSamples &&
+                    vertexCount + 6 <= maxVertexCount;
                     triangleTipVSamplePosition += polyVSampleOffset) {
                 m_vertices[vertexCount++] = x;
                 m_vertices[vertexCount++] = halfBreadth;
