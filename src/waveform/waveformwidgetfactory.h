@@ -18,6 +18,7 @@ class WaveformWidgetAbstract;
 class VSyncThread;
 class GuiTick;
 class VisualsManager;
+class QThread;
 
 class WaveformWidgetAbstractHandle {
   public:
@@ -127,6 +128,8 @@ class WaveformWidgetFactory : public QObject, public Singleton<WaveformWidgetFac
     void addVuMeter(WVuMeterGL* pWidget);
 
     void startVSync(GuiTick* pGuiTick, VisualsManager* pVisualsManager);
+    void stopVSync();
+
     void setVSyncType(int vsType);
     int getVSyncType();
 
@@ -157,6 +160,7 @@ class WaveformWidgetFactory : public QObject, public Singleton<WaveformWidgetFac
   private slots:
     void render();
     void swap();
+    void done();
 
   private:
     void evaluateWidgets();
@@ -191,6 +195,7 @@ class WaveformWidgetFactory : public QObject, public Singleton<WaveformWidgetFac
     bool m_openGLShaderAvailable;
     int m_beatGridAlpha;
 
+    QThread* m_mainThread;
     VSyncThread* m_vsyncThread;
     GuiTick* m_pGuiTick;  // not owned
     VisualsManager* m_pVisualsManager;  // not owned

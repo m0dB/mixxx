@@ -81,6 +81,8 @@ void VSyncThread::run() {
                     ((m_waitToSwapMicros - lastSwapTime) % m_syncIntervalTimeMicros);
         }
     }
+
+    emit vsyncThreadDone();
 }
 
 int VSyncThread::elapsed() {

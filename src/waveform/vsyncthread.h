@@ -40,6 +40,7 @@ class VSyncThread : public QThread {
   signals:
     void vsyncRender();
     void vsyncSwap();
+    void vsyncThreadDone();
 
   private:
     bool m_bDoRendering;

@@ -772,6 +772,17 @@ void WaveformWidgetFactory::swap() {
     // qDebug() << "swap end" << m_vsyncThread->elapsed();
 }
 
+void WaveformWidgetFactory::done() {
+    // move the widgets back to the main thread, so they can be destroyed from there
+    for (const auto& holder : m_waveformWidgetHolders) {
+        WaveformWidgetAbstract* pWaveformWidget = holder.m_waveformWidget;
+        WGLWidget* glw = pWaveformWidget->getGLWidget();
+        if (glw != nullptr && glw->movedToThread(m_vsyncThread)) {
+            glw->moveToThread(m_mainThread);
+        }
+    }
+}
+
 WaveformWidgetType::Type WaveformWidgetFactory::autoChooseWidgetType() const {
     if (m_openGlAvailable) {
         if (m_openGLShaderAvailable) {
@@ -1075,6 +1086,9 @@ int WaveformWidgetFactory::findIndexOf(WWaveformViewer* viewer) const {
 }
 
 void WaveformWidgetFactory::startVSync(GuiTick* pGuiTick, VisualsManager* pVisualsManager) {
+    // needed to move qopenglwidgets back to main thread for cleanup
+    m_mainThread = QThread::currentThread();
+
     m_pGuiTick = pGuiTick;
     m_pVisualsManager = pVisualsManager;
     m_vsyncThread = new VSyncThread(this);
@@ -1092,8 +1106,20 @@ void WaveformWidgetFactory::startVSync(GuiTick* pGuiTick, VisualsManager* pVisua
             this,
             &WaveformWidgetFactory::swap,
             Qt::DirectConnection);
+    connect(m_vsyncThread,
+            &VSyncThread::vsyncThreadDone,
+            this,
+            &WaveformWidgetFactory::done,
+            Qt::DirectConnection);
 
     m_vsyncThread->start(QThread::NormalPriority);
+}
+
+void WaveformWidgetFactory::stopVSync() {
+    if (m_vsyncThread) {
+        delete m_vsyncThread;
+        m_vsyncThread = nullptr;
+    }
 }
 
 void WaveformWidgetFactory::getAvailableVSyncTypes(QList<QPair<int, QString>>* pList) {

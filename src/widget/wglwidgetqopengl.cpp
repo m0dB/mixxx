@@ -79,8 +79,10 @@ bool WGLWidget::shouldRender() const {
 }
 
 void WGLWidget::moveToThread(QThread* thread) {
-    m_pOpenGLWindow->context()->moveToThread(thread);
-    m_thread = thread;
+    if (m_pOpenGLWindow && m_pOpenGLWindow->context()) {
+        m_pOpenGLWindow->context()->moveToThread(thread);
+        m_thread = thread;
+    }
 }
 
 bool WGLWidget::movedToThread(QThread* thread) const {

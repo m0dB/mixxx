@@ -355,6 +355,9 @@ MixxxMainWindow::~MixxxMainWindow() {
     m_pCoreServices->getSettings()->set(ConfigKey("[MainWindow]", "state"),
             QString(saveState().toBase64()));
 
+    // will move all qopengl widgets make to main thread
+    WaveformWidgetFactory::instance()->stopVSync();
+
     // GUI depends on KeyboardEventFilter, PlayerManager, Library
     qDebug() << t.elapsed(false).debugMillisWithUnit() << "deleting skin";
     m_pCentralWidget = nullptr;
