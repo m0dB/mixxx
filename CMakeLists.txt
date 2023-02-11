@@ -1161,6 +1161,7 @@ else()
     src/widget/woverviewlmh.cpp
     src/widget/woverviewrgb.cpp
     src/widget/wspinny.cpp
+    src/widget/wvumetergl.cpp
     src/widget/wwaveformviewer.cpp
   )
   if(QOPENGL)
@@ -1189,7 +1190,6 @@ else()
     target_sources(mixxx-lib PRIVATE
       src/waveform/sharedglcontext.cpp
       src/widget/wglwidgetqglwidget.cpp
-      src/widget/wvumetergl.cpp
     )
   endif()
 endif()
