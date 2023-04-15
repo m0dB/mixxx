@@ -1008,7 +1008,6 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/util/valuetransformer.cpp
   src/util/versionstore.cpp
   src/util/widgethelper.cpp
-  src/util/widgetrendertimer.cpp
   src/util/workerthread.cpp
   src/util/workerthreadscheduler.cpp
   src/util/xml.cpp
@@ -1163,7 +1162,7 @@ else()
   )
   if(QOPENGL)
     target_sources(mixxx-lib PRIVATE
-      src/waveform/renderers/qopengl/calculatematrix.cpp
+      src/waveform/renderers/qopengl/matrixforwidgetgeometry.cpp
       src/waveform/renderers/qopengl/shaders/colorshader.cpp
       src/waveform/renderers/qopengl/shaders/endoftrackshader.cpp
       src/waveform/renderers/qopengl/shaders/gradientshader.cpp
