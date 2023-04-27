@@ -28,7 +28,7 @@
 #include "util/timer.h"
 #include "util/valuetransformer.h"
 #include "util/xml.h"
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#ifndef MIXXX_USE_QML
 #include "waveform/vsyncthread.h"
 #endif
 #include "waveform/waveformwidgetfactory.h"
@@ -73,7 +73,7 @@
 #include "widget/wsizeawarestack.h"
 #include "widget/wskincolor.h"
 #include "widget/wslidercomposed.h"
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#ifndef MIXXX_USE_QML
 #include "widget/wspinny.h"
 #include "widget/wspinnyglsl.h"
 #endif
@@ -84,7 +84,7 @@
 #include "widget/wtrackproperty.h"
 #include "widget/wtracktext.h"
 #include "widget/wtrackwidgetgroup.h"
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#ifndef MIXXX_USE_QML
 #include "widget/wvumeter.h"
 #include "widget/wvumeterglsl.h"
 #include "widget/wvumeterlegacy.h"
@@ -946,7 +946,7 @@ void LegacySkinParser::setupLabelWidget(const QDomElement& element, WLabel* pLab
 }
 
 QWidget* LegacySkinParser::parseOverview(const QDomElement& node) {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#ifdef MIXXX_USE_QML
     Q_UNUSED(node);
 
     return nullptr;
@@ -992,7 +992,7 @@ QWidget* LegacySkinParser::parseOverview(const QDomElement& node) {
 }
 
 QWidget* LegacySkinParser::parseVisual(const QDomElement& node) {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#ifdef MIXXX_USE_QML
     Q_UNUSED(node);
 
     return nullptr;
@@ -1265,7 +1265,7 @@ QWidget* LegacySkinParser::parseRecordingDuration(const QDomElement& node) {
 }
 
 QWidget* LegacySkinParser::parseSpinny(const QDomElement& node) {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#ifdef MIXXX_USE_QML
     Q_UNUSED(node);
 
     return nullptr;
@@ -1350,7 +1350,7 @@ QWidget* LegacySkinParser::parseSpinny(const QDomElement& node) {
 }
 
 QWidget* LegacySkinParser::parseVuMeter(const QDomElement& node) {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#ifdef MIXXX_USE_QML
     Q_UNUSED(node);
 
     return nullptr;
