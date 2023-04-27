@@ -952,6 +952,7 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/util/battery/battery.cpp
   src/util/cache.cpp
   src/util/cmdlineargs.cpp
+  src/util/colorcomponents.cpp
   src/util/color/color.cpp
   src/util/color/colorpalette.cpp
   src/util/color/predefinedcolorpalettes.cpp
@@ -1081,7 +1082,7 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/widget/wtracktableviewheader.cpp
   src/widget/wtracktext.cpp
   src/widget/wtrackwidgetgroup.cpp
-  src/widget/wvumeter.cpp
+  src/widget/wvumeterlegacy.cpp
   src/widget/wwidget.cpp
   src/widget/wwidgetgroup.cpp
   src/widget/wwidgetstack.cpp
@@ -1156,16 +1157,18 @@ else()
     src/widget/woverviewhsv.cpp
     src/widget/woverviewlmh.cpp
     src/widget/woverviewrgb.cpp
+    src/widget/wspinnybase.cpp
     src/widget/wspinny.cpp
-    src/widget/wvumetergl.cpp
+    src/widget/wvumeterbase.cpp
+    src/widget/wvumeter.cpp
     src/widget/wwaveformviewer.cpp
   )
   if(QOPENGL)
     target_sources(mixxx-lib PRIVATE
       src/waveform/renderers/qopengl/matrixforwidgetgeometry.cpp
-      src/waveform/renderers/qopengl/shaders/colorshader.cpp
       src/waveform/renderers/qopengl/shaders/endoftrackshader.cpp
-      src/waveform/renderers/qopengl/shaders/gradientshader.cpp
+      src/waveform/renderers/qopengl/shaders/rgbashader.cpp
+      src/waveform/renderers/qopengl/shaders/rgbshader.cpp
       src/waveform/renderers/qopengl/shaders/shader.cpp
       src/waveform/renderers/qopengl/shaders/textureshader.cpp
       src/waveform/renderers/qopengl/shaders/unicolorshader.cpp
@@ -1187,8 +1190,8 @@ else()
       src/waveform/widgets/qopengl/simplewaveformwidget.cpp
       src/waveform/widgets/qopengl/waveformwidget.cpp
       src/widget/openglwindow.cpp
-      src/widget/qopengl/wspinny.cpp
-      src/widget/qopengl/wvumetergl.cpp
+      src/widget/qopengl/wspinnyglsl.cpp
+      src/widget/qopengl/wvumeterglsl.cpp
       src/widget/tooltipqopengl.cpp
       src/widget/wglwidgetqopengl.cpp
       src/widget/winitialglwidget.cpp
