@@ -1082,7 +1082,6 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/widget/wtracktableviewheader.cpp
   src/widget/wtracktext.cpp
   src/widget/wtrackwidgetgroup.cpp
-  src/widget/wvumeterlegacy.cpp
   src/widget/wwidget.cpp
   src/widget/wwidgetgroup.cpp
   src/widget/wwidgetstack.cpp
@@ -1161,6 +1160,7 @@ else()
     src/widget/wspinny.cpp
     src/widget/wvumeterbase.cpp
     src/widget/wvumeter.cpp
+    src/widget/wvumeterlegacy.cpp
     src/widget/wwaveformviewer.cpp
   )
   if(QOPENGL)
