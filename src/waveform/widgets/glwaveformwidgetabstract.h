@@ -31,11 +31,5 @@ class GLWaveformWidgetAbstract : public WaveformWidgetAbstract, public WGLWidget
     }
 
     GLWaveformRenderer* m_pGlRenderer;
-
-  private:
-#ifdef MIXXX_USE_QOPENGL
-    void handleEventFromWindow(QEvent* ev) override;
-#endif
-
 #endif // !defined(QT_NO_OPENGL) && !defined(QT_OPENGL_ES_2)
 };
