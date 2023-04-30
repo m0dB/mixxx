@@ -1162,6 +1162,7 @@ else()
     src/widget/wvumeter.cpp
     src/widget/wvumeterlegacy.cpp
     src/widget/wwaveformviewer.cpp
+    src/widget/wglwaveformwidget.cpp
   )
   if(QOPENGL)
     target_sources(mixxx-lib PRIVATE
