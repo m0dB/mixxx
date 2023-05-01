@@ -5,7 +5,7 @@
 
 #include "track/track_decl.h"
 #include "util/memory.h"
-#include "waveform/renderers/glwaveformrenderer.h"
+#include "waveform/renderers/glwaveformrenderersignal.h"
 
 #ifdef MIXXX_USE_QOPENGL
 class QOpenGLFramebufferObject;
@@ -18,7 +18,7 @@ class QGLShaderProgram;
 #endif
 
 class GLSLWaveformRendererSignal : public QObject,
-                                   public GLWaveformRenderer {
+                                   public GLWaveformRendererSignal {
 #ifdef MIXXX_USE_QOPENGL
     using FrameBufferObject = QOpenGLFramebufferObject;
     using Shader = QOpenGLShader;
