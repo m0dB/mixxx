@@ -792,7 +792,9 @@ void WTrackTableView::dropEvent(QDropEvent * event) {
             for (const auto& fileInfo : trackFileInfos) {
                 trackLocations.append(fileInfo.location());
             }
-            numNewRows = trackModel->addTracks(destIndex, trackLocations);
+            numNewRows = trackModel->addTracks(destIndex,
+                    m_pLibrary->trackCollectionManager()
+                            ->resolveTrackIdsFromLocations(trackLocations));
             DEBUG_ASSERT(numNewRows >= 0);
             DEBUG_ASSERT(numNewRows <= trackFileInfos.size());
         }
@@ -832,16 +834,40 @@ void WTrackTableView::keyPressEvent(QKeyEvent* event) {
                 m_pTrackMenu->slotShowDlgTrackInfo();
             }
         }
-    } break;
+        return;
+    }
     case kHideRemoveShortcutKey: {
         if (event->modifiers() == kHideRemoveShortcutModifier) {
             hideOrRemoveSelectedTracks();
+        }
+        return;
+    }
+    default:
+        break;
+    }
+    TrackModel* trackModel = getTrackModel();
+    if (trackModel && !trackModel->isLocked()) {
+        const QModelIndexList indices = selectionModel()->selectedRows();
+        if (event->matches(QKeySequence::Delete) || event->key() == Qt::Key_Backspace) {
+            trackModel->removeTracks(indices);
             return;
         }
-    } break;
-    default:
-        QTableView::keyPressEvent(event);
+        if (event->matches(QKeySequence::Cut)) {
+            trackModel->cutTracks(indices);
+            return;
+        }
+        if (event->matches(QKeySequence::Copy)) {
+            trackModel->copyTracks(indices);
+            return;
+        }
+        if (event->matches(QKeySequence::Paste)) {
+            trackModel->pasteTracks(indices);
+            // will trigger a repaint of the sidebar to show the increased track count
+            emit trackSelected(TrackPointer());
+            return;
+        }
     }
+    QTableView::keyPressEvent(event);
 }
 
 void WTrackTableView::hideOrRemoveSelectedTracks() {

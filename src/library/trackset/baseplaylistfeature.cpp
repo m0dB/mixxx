@@ -169,7 +169,7 @@ void BasePlaylistFeature::connectPlaylistDAO() {
             &BasePlaylistFeature::slotPlaylistTableRenamed);
 }
 
-int BasePlaylistFeature::playlistIdFromIndex(const QModelIndex& index) {
+int BasePlaylistFeature::playlistIdFromIndex(const QModelIndex& index) const {
     TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
     if (item == nullptr) {
         return kInvalidPlaylistId;
@@ -483,7 +483,9 @@ void BasePlaylistFeature::slotImportPlaylistFile(const QString& playlistFile,
 
     QList<QString> locations = Parser::parse(playlistFile);
     // Iterate over the List that holds locations of playlist entries
-    pPlaylistTableModel->addTracks(QModelIndex(), locations);
+    pPlaylistTableModel->addTracks(QModelIndex(),
+            m_pLibrary->trackCollectionManager()->resolveTrackIdsFromLocations(
+                    locations));
 }
 
 void BasePlaylistFeature::slotCreateImportPlaylist() {

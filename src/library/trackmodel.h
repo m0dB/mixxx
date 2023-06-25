@@ -140,6 +140,15 @@ class TrackModel {
     virtual void removeTracks(const QModelIndexList& indices) {
         Q_UNUSED(indices);
     }
+    virtual void cutTracks(const QModelIndexList& indices) {
+        Q_UNUSED(indices);
+    }
+    virtual void copyTracks(const QModelIndexList& indices) const {
+        Q_UNUSED(indices);
+    }
+    virtual void pasteTracks(const QModelIndexList& indices) {
+        Q_UNUSED(indices);
+    }
     virtual void hideTracks(const QModelIndexList& indices) {
         Q_UNUSED(indices);
     }
@@ -149,9 +158,9 @@ class TrackModel {
     virtual void purgeTracks(const QModelIndexList& indices) {
         Q_UNUSED(indices);
     }
-    virtual int addTracks(const QModelIndex& index, const QList<QString>& locations) {
+    virtual int addTracks(const QModelIndex& index, const QList<TrackId>& tracks) {
         Q_UNUSED(index);
-        Q_UNUSED(locations);
+        Q_UNUSED(tracks);
         return 0;
     }
     virtual void moveTrack(const QModelIndex& sourceIndex,

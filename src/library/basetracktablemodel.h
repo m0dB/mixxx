@@ -82,6 +82,10 @@ class BaseTrackTableModel : public QAbstractTableModel, public TrackModel {
         return m_columnCache.fieldIndex(fieldName);
     }
 
+    void cutTracks(const QModelIndexList& indices) override;
+    void copyTracks(const QModelIndexList& indices) const override;
+    void pasteTracks(const QModelIndexList& indices) override;
+
     bool isColumnHiddenByDefault(
             int column) override;
 

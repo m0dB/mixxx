@@ -324,8 +324,31 @@ void WLibrarySidebar::keyPressEvent(QKeyEvent* event) {
         return;
     }
     default:
-        QTreeView::keyPressEvent(event);
+        break;
     }
+    QModelIndexList selectedIndices = selectionModel()->selectedRows();
+    SidebarModel* sidebarModel = qobject_cast<SidebarModel*>(model());
+    if (sidebarModel && !selectedIndices.isEmpty()) {
+        QModelIndex index = selectedIndices.at(0);
+        if (event->matches(QKeySequence::Delete) || event->key() == Qt::Key_Backspace) {
+            sidebarModel->clear(index);
+            return;
+        }
+        if (event->matches(QKeySequence::Cut)) {
+            sidebarModel->cut(index);
+            return;
+        }
+        if (event->matches(QKeySequence::Copy)) {
+            sidebarModel->copy(index);
+            return;
+        }
+        if (event->matches(QKeySequence::Paste)) {
+            sidebarModel->paste(index);
+            return;
+        }
+    }
+
+    QTreeView::keyPressEvent(event);
 }
 
 void WLibrarySidebar::mousePressEvent(QMouseEvent* event) {

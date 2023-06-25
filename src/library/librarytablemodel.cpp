@@ -55,15 +55,6 @@ void LibraryTableModel::setTableModel() {
     setHeaderData(fi, Qt::Horizontal, tr("Sort items randomly"), Qt::ToolTipRole);
 }
 
-int LibraryTableModel::addTracks(const QModelIndex& index,
-        const QList<QString>& locations) {
-    Q_UNUSED(index);
-    QList<TrackId> trackIds = m_pTrackCollectionManager->resolveTrackIdsFromLocations(
-            locations);
-    select();
-    return trackIds.size();
-}
-
 bool LibraryTableModel::isColumnInternal(int column) {
     return column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_ID) ||
             column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_URL) ||

@@ -10,6 +10,7 @@
 
 #include "library/trackset/baseplaylistfeature.h"
 #include "preferences/usersettings.h"
+#include "util/clipboard.h"
 
 class TrackCollection;
 class TreeItem;
@@ -25,6 +26,9 @@ class PlaylistFeature : public BasePlaylistFeature {
     ~PlaylistFeature() override = default;
 
     QVariant title() override;
+
+    void copyChild(const QModelIndex& index) const override;
+    void pasteChild(const QModelIndex& index) override;
 
     bool dropAcceptChild(const QModelIndex& index,
             const QList<QUrl>& urls,

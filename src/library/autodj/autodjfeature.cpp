@@ -17,6 +17,7 @@
 #include "moc_autodjfeature.cpp"
 #include "sources/soundsourceproxy.h"
 #include "track/track.h"
+#include "util/clipboard.h"
 #include "util/dnd.h"
 #include "widget/wlibrary.h"
 #include "widget/wlibrarysidebar.h"
@@ -163,6 +164,28 @@ void AutoDJFeature::activate() {
     emit switchToView(kViewName);
     emit disableSearch();
     emit enableCoverArtDisplay(true);
+}
+
+void AutoDJFeature::clear() {
+    m_playlistDao.clearAutoDJQueue();
+}
+
+void AutoDJFeature::paste() {
+    const QList<QUrl> urls = Clipboard::urls();
+    const auto loc = PlaylistDAO::AutoDJSendLoc::BOTTOM;
+    if (urls.size() == 1 && urls[0].scheme() == "playlist") {
+        const int fromPlaylistId = m_playlistDao.getPlaylistIdFromName(urls[0].path());
+        if (fromPlaylistId != -1) {
+            m_playlistDao.addPlaylistToAutoDJQueue(fromPlaylistId, loc);
+        }
+    } else {
+        const QList<TrackId> trackIds =
+                m_pLibrary->trackCollectionManager()
+                        ->resolveTrackIdsFromUrls(urls, false);
+        if (!trackIds.isEmpty()) {
+            m_playlistDao.addTracksToAutoDJQueue(trackIds, loc);
+        }
+    }
 }
 
 bool AutoDJFeature::dropAccept(const QList<QUrl>& urls, QObject* pSource) {

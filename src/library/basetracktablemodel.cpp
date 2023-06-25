@@ -19,6 +19,7 @@
 #include "moc_basetracktablemodel.cpp"
 #include "track/track.h"
 #include "util/assert.h"
+#include "util/clipboard.h"
 #include "util/datetime.h"
 #include "util/db/sqlite.h"
 #include "util/logger.h"
@@ -360,6 +361,58 @@ int BaseTrackTableModel::columnCount(const QModelIndex& parent) const {
         return 0;
     }
     return countValidColumnHeaders();
+}
+
+void BaseTrackTableModel::cutTracks(const QModelIndexList& indices) {
+    copyTracks(indices);
+    removeTracks(indices);
+}
+
+void BaseTrackTableModel::copyTracks(const QModelIndexList& indices) const {
+    Clipboard::begin();
+    for (const QModelIndex& index : indices) {
+        if (index.isValid()) {
+            Clipboard::add(QUrl::fromLocalFile(getTrackLocation(index)));
+        }
+    }
+    Clipboard::end();
+}
+
+namespace {
+QModelIndex getPasteDestinationIndex(const QModelIndexList& indices) {
+    QModelIndex result;
+    if (!indices.empty()) {
+        result = indices.at(0);
+        for (auto index : indices) {
+            if (index.row() > result.row()) {
+                result = index;
+            }
+        }
+        result = result.siblingAtRow(result.row() + 1);
+    }
+    return result;
+}
+} // namespace
+
+void BaseTrackTableModel::pasteTracks(const QModelIndexList& indices) {
+    const QList<QUrl> urls = Clipboard::urls();
+    const QModelIndex index = getPasteDestinationIndex(indices);
+    QList<TrackId> trackIds;
+    if (urls.size() == 1 && urls[0].scheme() == "playlist") {
+        int fullPlaylistId = m_pTrackCollectionManager->internalCollection()
+                                     ->getPlaylistDAO()
+                                     .getPlaylistIdFromName(urls[0].path());
+        if (fullPlaylistId != -1) {
+            trackIds = m_pTrackCollectionManager->internalCollection()
+                               ->getPlaylistDAO()
+                               .getTrackIds(fullPlaylistId);
+        }
+    } else {
+        trackIds = m_pTrackCollectionManager->resolveTrackIdsFromUrls(urls, false);
+    }
+    if (!trackIds.isEmpty()) {
+        addTracks(index, trackIds);
+    }
 }
 
 bool BaseTrackTableModel::isColumnHiddenByDefault(

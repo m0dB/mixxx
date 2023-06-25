@@ -22,6 +22,7 @@
 #include "moc_cratefeature.cpp"
 #include "sources/soundsourceproxy.h"
 #include "track/track.h"
+#include "util/clipboard.h"
 #include "util/defs.h"
 #include "util/dnd.h"
 #include "util/file.h"
@@ -236,6 +237,35 @@ void CrateFeature::updateTreeItemForCrateSummary(
     // Update mutable properties
     pTreeItem->setLabel(formatLabel(crateSummary));
     pTreeItem->setIcon(crateSummary.isLocked() ? m_lockedCrateIcon : QIcon());
+}
+
+void CrateFeature::copyChild(const QModelIndex& index) const {
+    Q_UNUSED(index);
+    Clipboard::begin();
+    // TODO
+    Clipboard::end();
+}
+
+void CrateFeature::pasteChild(const QModelIndex& index) {
+    CrateId crateId(crateIdFromIndex(index));
+    VERIFY_OR_DEBUG_ASSERT(crateId.isValid()) {
+        return;
+    }
+    const QList<QUrl> urls = Clipboard::urls();
+    QList<TrackId> trackIds;
+    if (urls.size() == 1 && urls[0].scheme() == "playlist") {
+        auto& playlistDao = m_pTrackCollection->getPlaylistDAO();
+        int fullPlaylistId = playlistDao.getPlaylistIdFromName(urls[0].path());
+        if (fullPlaylistId != -1) {
+            trackIds = playlistDao.getTrackIds(fullPlaylistId);
+        }
+    } else {
+        trackIds = m_pLibrary->trackCollectionManager()->resolveTrackIdsFromUrls(urls, false);
+    }
+    if (trackIds.size()) {
+        m_crateTableModel.addTracks(QModelIndex(), trackIds);
+        emit showTrackModel(&m_crateTableModel);
+    }
 }
 
 bool CrateFeature::dropAcceptChild(
@@ -682,7 +712,9 @@ void CrateFeature::slotImportPlaylistFile(const QString& playlistFile, CrateId c
 
     if (crateId == m_crateTableModel.selectedCrate()) {
         // Add tracks directly to the model
-        m_crateTableModel.addTracks(QModelIndex(), locations);
+        m_crateTableModel.addTracks(QModelIndex(),
+                m_pLibrary->trackCollectionManager()
+                        ->resolveTrackIdsFromLocations(locations));
     } else {
         // Create a temporary table model since the main one might have another
         // crate selected which is not the crate that received the right-click.
@@ -690,7 +722,9 @@ void CrateFeature::slotImportPlaylistFile(const QString& playlistFile, CrateId c
                 new CrateTableModel(this, m_pLibrary->trackCollectionManager()));
         pCrateTableModel->selectCrate(crateId);
         pCrateTableModel->select();
-        pCrateTableModel->addTracks(QModelIndex(), locations);
+        pCrateTableModel->addTracks(QModelIndex(),
+                m_pLibrary->trackCollectionManager()
+                        ->resolveTrackIdsFromLocations(locations));
     }
 }
 
