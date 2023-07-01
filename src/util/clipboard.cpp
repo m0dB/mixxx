@@ -22,7 +22,11 @@ void Clipboard::end() {
 
 QList<QUrl> Clipboard::urls() {
     const QString text = QApplication::clipboard()->text();
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     QStringList strings = text.split("\n", Qt::SkipEmptyParts);
+#else
+    QStringList strings = text.split("\n", QString::SkipEmptyParts);
+#endif
     QList<QUrl> result;
     for (QString string : strings) {
         result.append(QUrl(string));

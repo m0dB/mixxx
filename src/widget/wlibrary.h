@@ -11,6 +11,7 @@
 #include "widget/wbasewidget.h"
 
 class KeyboardEventFilter;
+class WTrackTableView;
 
 class WLibrary : public QStackedWidget, public WBaseWidget {
     Q_OBJECT
@@ -34,6 +35,8 @@ class WLibrary : public QStackedWidget, public WBaseWidget {
     // This is primarily used to disable the "Select track in library" track menu action
     // to avoid unintended behaviour if the current view has no tracks table.
     bool isTrackInCurrentView(const TrackId& trackId);
+
+    WTrackTableView* currentView() const;
 
     // Alpha value for row color background
     static constexpr double kDefaultTrackTableBackgroundColorOpacity = 0.125; // 12.5% opacity

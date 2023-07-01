@@ -548,11 +548,20 @@ void WTrackTableView::onSearch(const QString& text) {
 void WTrackTableView::onShow() {
 }
 
+/*
+void WTrackTableView::mousePressEvent(QMouseEvent* pEvent) {
+    if (pEvent->buttons() != Qt::LeftButton) {
+        m_pressLocation = pEvent->location();
+    }
+}
+*/
 void WTrackTableView::mouseMoveEvent(QMouseEvent* pEvent) {
     // Only use this for drag and drop if the LeftButton is pressed we need to
     // check for this because mousetracking is activated and this function is
     // called every time the mouse is moved -- kain88 May 2012
-    if (pEvent->buttons() != Qt::LeftButton) {
+    if (pEvent->buttons() !=
+            Qt::LeftButton) { // || distance(pEvent->location(),
+                              // m_pressLocation) < threshold) {
         // Needed for mouse-tracking to fire entered() events. If we call this
         // outside of this if statement then we get 'ghost' drags. See issue
         // #6507
@@ -857,6 +866,7 @@ void WTrackTableView::keyPressEvent(QKeyEvent* event) {
             return;
         }
         if (event->matches(QKeySequence::Copy)) {
+            qDebug() << "AAAAAA" << this;
             trackModel->copyTracks(indices);
             return;
         }

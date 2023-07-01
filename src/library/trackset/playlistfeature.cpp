@@ -116,44 +116,6 @@ bool PlaylistFeature::dropAcceptChild(
     return m_playlistDao.appendTracksToPlaylist(trackIds, playlistId);
 }
 
-void PlaylistFeature::copyChild(const QModelIndex& index) const {
-    int playlistId = playlistIdFromIndex(index);
-    VERIFY_OR_DEBUG_ASSERT(playlistId >= 0) {
-        return;
-    }
-    QUrl url;
-    url.setPath(m_playlistDao.getPlaylistName(playlistId));
-    url.setScheme("playlist");
-    Clipboard::begin();
-    Clipboard::add(url);
-    Clipboard::end();
-}
-
-void PlaylistFeature::pasteChild(
-        const QModelIndex& index) {
-    const int playlistId = playlistIdFromIndex(index);
-    VERIFY_OR_DEBUG_ASSERT(playlistId >= 0) {
-        return;
-    }
-    const QList<QUrl> urls = Clipboard::urls();
-    QList<TrackId> trackIds;
-    if (urls.size() == 1 && urls[0].scheme() == "playlist") {
-        int fullPlaylistId = m_playlistDao.getPlaylistIdFromName(urls[0].path());
-        if (fullPlaylistId != -1) {
-            trackIds = m_playlistDao.getTrackIds(fullPlaylistId);
-        }
-    } else {
-        // this filters duplicates. do we want that?
-        trackIds = m_pLibrary->trackCollectionManager()
-                           ->resolveTrackIdsFromUrls(urls, false);
-    }
-
-    if (!trackIds.isEmpty()) {
-        m_playlistDao.appendTracksToPlaylist(trackIds, playlistId);
-        activateChild(index);
-    }
-}
-
 bool PlaylistFeature::dragMoveAcceptChild(const QModelIndex& index, const QUrl& url) {
     int playlistId = playlistIdFromIndex(index);
     bool locked = m_playlistDao.isPlaylistLocked(playlistId);

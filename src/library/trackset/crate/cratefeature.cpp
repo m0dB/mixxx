@@ -239,35 +239,6 @@ void CrateFeature::updateTreeItemForCrateSummary(
     pTreeItem->setIcon(crateSummary.isLocked() ? m_lockedCrateIcon : QIcon());
 }
 
-void CrateFeature::copyChild(const QModelIndex& index) const {
-    Q_UNUSED(index);
-    Clipboard::begin();
-    // TODO
-    Clipboard::end();
-}
-
-void CrateFeature::pasteChild(const QModelIndex& index) {
-    CrateId crateId(crateIdFromIndex(index));
-    VERIFY_OR_DEBUG_ASSERT(crateId.isValid()) {
-        return;
-    }
-    const QList<QUrl> urls = Clipboard::urls();
-    QList<TrackId> trackIds;
-    if (urls.size() == 1 && urls[0].scheme() == "playlist") {
-        auto& playlistDao = m_pTrackCollection->getPlaylistDAO();
-        int fullPlaylistId = playlistDao.getPlaylistIdFromName(urls[0].path());
-        if (fullPlaylistId != -1) {
-            trackIds = playlistDao.getTrackIds(fullPlaylistId);
-        }
-    } else {
-        trackIds = m_pLibrary->trackCollectionManager()->resolveTrackIdsFromUrls(urls, false);
-    }
-    if (trackIds.size()) {
-        m_crateTableModel.addTracks(QModelIndex(), trackIds);
-        emit showTrackModel(&m_crateTableModel);
-    }
-}
-
 bool CrateFeature::dropAcceptChild(
         const QModelIndex& index, const QList<QUrl>& urls, QObject* pSource) {
     CrateId crateId(crateIdFromIndex(index));

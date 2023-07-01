@@ -699,6 +699,14 @@ bool Library::isTrackIdInCurrentLibraryView(const TrackId& trackId) {
     }
 }
 
+WTrackTableView* Library::currentLibraryView() const {
+    if (m_pLibraryWidget) {
+        return m_pLibraryWidget->currentView();
+    } else {
+        return nullptr;
+    }
+}
+
 LibraryTableModel* Library::trackTableModel() const {
     VERIFY_OR_DEBUG_ASSERT(m_pMixxxLibraryFeature) {
         return nullptr;

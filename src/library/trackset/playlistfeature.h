@@ -27,9 +27,6 @@ class PlaylistFeature : public BasePlaylistFeature {
 
     QVariant title() override;
 
-    void copyChild(const QModelIndex& index) const override;
-    void pasteChild(const QModelIndex& index) override;
-
     bool dropAcceptChild(const QModelIndex& index,
             const QList<QUrl>& urls,
             QObject* pSource) override;

@@ -116,6 +116,18 @@ bool WLibrary::isTrackInCurrentView(const TrackId& trackId) {
     }
 }
 
+WTrackTableView* WLibrary::currentView() const {
+    QWidget* current = currentWidget();
+    WTrackTableView* tracksView = qobject_cast<WTrackTableView*>(current);
+    if (!tracksView) {
+        // This view is no tracks view, but maybe a special tracks view with a
+        // controls row (AutoDJ, Recording)?
+        // qDebug() << "   view is no tracks view. look for tracks view child";
+        tracksView = current->findChild<WTrackTableView*>();
+    }
+    return tracksView;
+}
+
 void WLibrary::slotSelectTrackInActiveTrackView(const TrackId& trackId) {
     //qDebug() << "WLibrary::slotSelectTrackInActiveTrackView" << trackId;
     if (!trackId.isValid()) {

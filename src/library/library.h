@@ -38,6 +38,7 @@ class TrackModel;
 class WSearchLineEdit;
 class WLibrarySidebar;
 class WLibrary;
+class WTrackTableView;
 
 #ifdef __ENGINEPRIME__
 namespace mixxx {
@@ -82,6 +83,8 @@ class Library: public QObject {
     LibraryTableModel* trackTableModel() const;
 
     bool isTrackIdInCurrentLibraryView(const TrackId& trackId);
+
+    WTrackTableView* currentLibraryView() const;
 
     int getTrackTableRowHeight() const {
         return m_iTrackTableRowHeight;
