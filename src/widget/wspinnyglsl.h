@@ -15,6 +15,10 @@ class WSpinnyGLSL : public WSpinnyBase {
             BaseTrackPlayer* pPlayer);
     ~WSpinnyGLSL() override;
 
+    void mouseMoveEvent(QMouseEvent* e) override;
+    void mousePressEvent(QMouseEvent* e) override;
+    void mouseReleaseEvent(QMouseEvent* e) override;
+
   private:
     void draw() override;
     void coverChanged() override;
@@ -30,6 +34,8 @@ class WSpinnyGLSL : public WSpinnyBase {
     void updateVinylSignalQualityImage(
             const QColor& qual_color, const unsigned char* data) override;
     void drawVinylQuality();
+    void generateTestTexture();
+    void drawTextureFromWaveformRenderMark(float x, float y, QOpenGLTexture* texture);
 
     mixxx::TextureShader m_textureShader;
     mixxx::VinylQualityShader m_vinylQualityShader;
@@ -39,5 +45,7 @@ class WSpinnyGLSL : public WSpinnyBase {
     std::unique_ptr<QOpenGLTexture> m_pGhostTextureScaled;
     std::unique_ptr<QOpenGLTexture> m_pLoadedCoverTextureScaled;
     std::unique_ptr<QOpenGLTexture> m_pQTexture;
+    std::unique_ptr<QOpenGLTexture> m_testTexture;
     QColor m_vinylQualityColor;
+    int m_state{};
 };

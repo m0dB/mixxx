@@ -90,6 +90,27 @@ void WSpinnyGLSL::paintGL() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    if (m_state == 0) {
+        glClearColor(1.f, 0.f, 0.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        return;
+    }
+    if (m_state == 1) {
+        glClearColor(0.f, 1.f, 0.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        return;
+    }
+    if (m_state == 2) {
+        glClearColor(0.f, 0.f, 1.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        return;
+    }
+
+    if (m_state == 3) {
+        drawTextureFromWaveformRenderMark(0.f, 0.f, m_testTexture.get());
+        return;
+    }
+
     m_textureShader.bind();
 
     int matrixLocation = m_textureShader.matrixLocation();
@@ -105,23 +126,35 @@ void WSpinnyGLSL::paintGL() {
 
     m_textureShader.setUniformValue(samplerLocation, 0);
 
-    if (m_pBgTexture) {
-        drawTexture(m_pBgTexture.get());
+    if (m_state == 11 || m_state == 4) {
+        if (m_pBgTexture) {
+            drawTexture(m_pBgTexture.get());
+        }
     }
 
-    if (m_bShowCover && m_pLoadedCoverTextureScaled) {
-        drawTexture(m_pLoadedCoverTextureScaled.get());
+    if (m_state == 11 || m_state == 5 || m_state == 10 || m_state == 12) {
+        if (m_state == 12) {
+            glClearColor(1.f, 1.f, 0.f, 1.f);
+            glClear(GL_COLOR_BUFFER_BIT);
+        }
+        if (m_bShowCover && m_pLoadedCoverTextureScaled) {
+            drawTexture(m_pLoadedCoverTextureScaled.get());
+        }
     }
 
-    if (m_pMaskTexture) {
-        drawTexture(m_pMaskTexture.get());
+    if (m_state == 11 || m_state == 6 || m_state == 10) {
+        if (m_pMaskTexture) {
+            drawTexture(m_pMaskTexture.get());
+        }
     }
 
-    // Overlay the signal quality drawing if vinyl is active
-    if (shouldDrawVinylQuality()) {
-        m_textureShader.release();
-        drawVinylQuality();
-        m_textureShader.bind();
+    if (m_state == 11 || m_state == 7) {
+        // Overlay the signal quality drawing if vinyl is active
+        if (shouldDrawVinylQuality()) {
+            m_textureShader.release();
+            drawVinylQuality();
+            m_textureShader.bind();
+        }
     }
 
     // To rotate the foreground image around the center of the image,
@@ -130,22 +163,26 @@ void WSpinnyGLSL::paintGL() {
     // and draw the image at the corner.
     // p.translate(width() / 2, height() / 2);
 
-    bool paintGhost = m_bGhostPlayback && m_pGhostTextureScaled;
+    if (m_state == 11 || m_state == 8) {
+        bool paintGhost = m_bGhostPlayback && m_pGhostTextureScaled;
 
-    if (paintGhost) {
-        QMatrix4x4 rotate;
-        rotate.rotate(m_fGhostAngle, 0, 0, -1);
-        m_textureShader.setUniformValue(matrixLocation, rotate);
+        if (paintGhost) {
+            QMatrix4x4 rotate;
+            rotate.rotate(m_fGhostAngle, 0, 0, -1);
+            m_textureShader.setUniformValue(matrixLocation, rotate);
 
-        drawTexture(m_pGhostTextureScaled.get());
+            drawTexture(m_pGhostTextureScaled.get());
+        }
     }
 
-    if (m_pFgTextureScaled) {
-        QMatrix4x4 rotate;
-        rotate.rotate(m_fAngle, 0, 0, -1);
-        m_textureShader.setUniformValue(matrixLocation, rotate);
+    if (m_state == 11 || m_state == 9) {
+        if (m_pFgTextureScaled) {
+            QMatrix4x4 rotate;
+            rotate.rotate(m_fAngle, 0, 0, -1);
+            m_textureShader.setUniformValue(matrixLocation, rotate);
 
-        drawTexture(m_pFgTextureScaled.get());
+            drawTexture(m_pFgTextureScaled.get());
+        }
     }
 
     m_textureShader.release();
@@ -159,6 +196,8 @@ void WSpinnyGLSL::initializeGL() {
     m_pQTexture->setSize(m_iVinylScopeSize, m_iVinylScopeSize);
     m_pQTexture->setFormat(QOpenGLTexture::R8_UNorm);
     m_pQTexture->allocateStorage(QOpenGLTexture::Red, QOpenGLTexture::UInt8);
+
+    generateTestTexture();
 
     m_textureShader.init();
     m_vinylQualityShader.init();
@@ -227,9 +266,9 @@ void WSpinnyGLSL::drawVinylQuality() {
 
     m_vinylQualityShader.setUniformValue(samplerLocation, 0);
 
-    m_textureShader.setAttributeArray(
+    m_vinylQualityShader.setAttributeArray(
             positionLocation, GL_FLOAT, posarray, 2);
-    m_textureShader.setAttributeArray(
+    m_vinylQualityShader.setAttributeArray(
             texcoordLocation, GL_FLOAT, texarray, 2);
 
     m_pQTexture->bind();
@@ -239,4 +278,98 @@ void WSpinnyGLSL::drawVinylQuality() {
     m_pQTexture->release();
 
     m_vinylQualityShader.release();
+}
+
+void WSpinnyGLSL::mouseMoveEvent(QMouseEvent*) {
+}
+
+void WSpinnyGLSL::mousePressEvent(QMouseEvent*) {
+    m_state++;
+    if (m_state == 13) {
+        m_state = 0;
+    }
+}
+
+void WSpinnyGLSL::mouseReleaseEvent(QMouseEvent*) {
+}
+
+void WSpinnyGLSL::drawTextureFromWaveformRenderMark(float x, float y, QOpenGLTexture* texture) {
+    const float devicePixelRatio = devicePixelRatioF();
+    const float texx1 = 0.f;
+    const float texy1 = 0.f;
+    const float texx2 = 1.f;
+    const float texy2 = 1.f;
+
+    const float posx1 = x;
+    const float posx2 = x + static_cast<float>(texture->width() / devicePixelRatio);
+    const float posy1 = y;
+    const float posy2 = y + static_cast<float>(texture->height() / devicePixelRatio);
+
+    const float posarray[] = {posx1, posy1, posx2, posy1, posx1, posy2, posx2, posy2};
+    const float texarray[] = {texx1, texy1, texx2, texy1, texx1, texy2, texx2, texy2};
+
+    QMatrix4x4 matrix;
+    matrix.ortho(QRectF(0.0f,
+            0.0f,
+            width() * devicePixelRatioF(),
+            height() * devicePixelRatioF()));
+
+    m_textureShader.bind();
+
+    int matrixLocation = m_textureShader.uniformLocation("matrix");
+    int samplerLocation = m_textureShader.uniformLocation("sampler");
+    int positionLocation = m_textureShader.attributeLocation("position");
+    int texcoordLocation = m_textureShader.attributeLocation("texcoor");
+
+    m_textureShader.setUniformValue(matrixLocation, matrix);
+
+    m_textureShader.enableAttributeArray(positionLocation);
+    m_textureShader.setAttributeArray(
+            positionLocation, GL_FLOAT, posarray, 2);
+    m_textureShader.enableAttributeArray(texcoordLocation);
+    m_textureShader.setAttributeArray(
+            texcoordLocation, GL_FLOAT, texarray, 2);
+
+    m_textureShader.setUniformValue(samplerLocation, 0);
+
+    texture->bind();
+
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    texture->release();
+
+    m_textureShader.disableAttributeArray(positionLocation);
+    m_textureShader.disableAttributeArray(texcoordLocation);
+    m_textureShader.release();
+}
+
+void WSpinnyGLSL::generateTestTexture() {
+    const float devicePixelRatio = devicePixelRatioF();
+
+    float imgwidth = 32.f;
+    float imgheight = 32.f;
+
+    QImage image(static_cast<int>(imgwidth * devicePixelRatio),
+            static_cast<int>(imgheight * devicePixelRatio),
+            QImage::Format_ARGB32_Premultiplied);
+    image.setDevicePixelRatio(devicePixelRatio);
+    image.fill(QColor(0, 0, 0, 0).rgba());
+
+    QPainter painter;
+    painter.begin(&image);
+    painter.setWorldMatrixEnabled(false);
+    painter.setPen(QColor("white"));
+    QBrush bgFill = QColor("white");
+    // lines next to playpos
+    // Note: don't draw lines where they would overlap the triangles,
+    // otherwise both translucent strokes add up to a darker tone.
+    painter.drawLine(QLineF(0.f, 0.f, imgwidth, imgheight));
+    painter.drawLine(QLineF(imgwidth, 0.f, 0.f, imgheight));
+
+    painter.end();
+
+    m_testTexture.reset(new QOpenGLTexture(image));
+    m_testTexture->setMinificationFilter(QOpenGLTexture::Linear);
+    m_testTexture->setMagnificationFilter(QOpenGLTexture::Linear);
+    m_testTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
 }
