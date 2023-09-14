@@ -778,8 +778,7 @@ void WaveformWidgetFactory::render() {
     m_pVisualsManager->process(m_endOfTrackWarningTime);
     m_pGuiTick->process();
 
-    //qDebug() << "refresh end" << m_vsyncThread->elapsed();
-    m_vsyncThread->vsyncSlotFinished();
+    // qDebug() << "refresh end" << m_vsyncThread->elapsed();
 }
 
 void WaveformWidgetFactory::swap() {
@@ -817,8 +816,7 @@ void WaveformWidgetFactory::swap() {
         // If we are using WVuMeter, this does nothing
         emit swapVuMeters();
     }
-    //qDebug() << "swap end" << m_vsyncThread->elapsed();
-    m_vsyncThread->vsyncSlotFinished();
+    // qDebug() << "swap end" << m_vsyncThread->elapsed();
 }
 
 WaveformWidgetType::Type WaveformWidgetFactory::autoChooseWidgetType() const {
@@ -1124,20 +1122,8 @@ void WaveformWidgetFactory::startVSync(GuiTick* pGuiTick, VisualsManager* pVisua
     m_pGuiTick = pGuiTick;
     m_pVisualsManager = pVisualsManager;
     m_vsyncThread = new VSyncThread(this);
-    m_vsyncThread->setObjectName(QStringLiteral("VSync"));
     m_vsyncThread->setVSyncType(m_vSyncType);
     m_vsyncThread->setSyncIntervalTimeMicros(static_cast<int>(1e6 / m_frameRate));
-
-    connect(m_vsyncThread,
-            &VSyncThread::vsyncRender,
-            this,
-            &WaveformWidgetFactory::render);
-    connect(m_vsyncThread,
-            &VSyncThread::vsyncSwap,
-            this,
-            &WaveformWidgetFactory::swap);
-
-    m_vsyncThread->start(QThread::NormalPriority);
 }
 
 void WaveformWidgetFactory::getAvailableVSyncTypes(QList<QPair<int, QString>>* pList) {
@@ -1223,4 +1209,37 @@ QSurfaceFormat WaveformWidgetFactory::getSurfaceFormat() {
     format.setSwapInterval(0);
 #endif
     return format;
+}
+
+void WaveformWidgetFactory::maybeRenderAndSwap(bool maySleep) {
+    if (m_skipRender || !m_vsyncThread) {
+        if (maySleep) {
+            QThread::usleep(1000);
+        }
+        return;
+    }
+
+    if (!m_hasRendered) {
+        bool shouldRender = false;
+        for (decltype(m_waveformWidgetHolders)::size_type i = 0;
+                i < m_waveformWidgetHolders.size() && !shouldRender;
+                i++) {
+            WaveformWidgetAbstract* pWaveformWidget = m_waveformWidgetHolders[i].m_waveformWidget;
+            shouldRender = shouldRenderWaveform(pWaveformWidget);
+        }
+
+        if (!shouldRender) {
+            if (maySleep) {
+                QThread::usleep(1000);
+            }
+            return;
+        }
+        render();
+        m_hasRendered = true;
+    }
+    if (m_vsyncThread->shouldSwap(maySleep)) {
+        swap();
+        m_vsyncThread->swapped();
+        m_hasRendered = false;
+    }
 }

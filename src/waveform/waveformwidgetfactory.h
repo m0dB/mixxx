@@ -141,6 +141,8 @@ class WaveformWidgetFactory : public QObject, public Singleton<WaveformWidgetFac
 
     WaveformWidgetType::Type autoChooseWidgetType() const;
 
+    void maybeRenderAndSwap(bool maySleep);
+
   signals:
     void waveformUpdateTick();
     void waveformMeasured(float frameRate, int droppedFrames);
@@ -158,11 +160,10 @@ class WaveformWidgetFactory : public QObject, public Singleton<WaveformWidgetFac
 
     friend class Singleton<WaveformWidgetFactory>;
 
-  private slots:
+  private:
     void render();
     void swap();
 
-  private:
     void evaluateWidgets();
     template<typename WaveformT>
     QString buildWidgetDisplayName() const;
@@ -184,6 +185,7 @@ class WaveformWidgetFactory : public QObject, public Singleton<WaveformWidgetFac
     UserSettingsPointer m_config;
 
     bool m_skipRender;
+    bool m_hasRendered{};
     int m_frameRate;
     int m_endOfTrackWarningTime;
     double m_defaultZoom;

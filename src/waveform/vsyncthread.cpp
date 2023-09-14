@@ -8,12 +8,12 @@
 #include "util/math.h"
 #include "util/performancetimer.h"
 #include "waveform/guitick.h"
+#include "waveform/waveformwidgetfactory.h"
 
 VSyncThread::VSyncThread(QObject* pParent)
-        : QThread(pParent),
-          m_bDoRendering(true),
+        : m_bDoRendering(true),
           m_vSyncTypeChanged(false),
-          m_syncIntervalTimeMicros(33333),  // 30 FPS
+          m_syncIntervalTimeMicros(33333), // 30 FPS
           m_waitToSwapMicros(0),
           m_vSyncMode(ST_TIMER),
           m_syncOk(false),
@@ -25,68 +25,9 @@ VSyncThread::VSyncThread(QObject* pParent)
 
 VSyncThread::~VSyncThread() {
     m_bDoRendering = false;
-    m_semaVsyncSlot.release(2); // Two slots
-    wait();
     //delete m_glw;
 }
 
-void VSyncThread::run() {
-    QThread::currentThread()->setObjectName("VSyncThread");
-
-    m_waitToSwapMicros = m_syncIntervalTimeMicros;
-    m_timer.start();
-
-    //qDebug() << "VSyncThread::run()";
-    while (m_bDoRendering) {
-        if (m_vSyncMode == ST_FREE) {
-            // for benchmark only!
-
-            // renders the waveform, Possible delayed due to anti tearing
-            emit vsyncRender();
-            m_semaVsyncSlot.acquire();
-
-            emit vsyncSwap(); // swaps the new waveform to front
-            m_semaVsyncSlot.acquire();
-
-            m_sinceLastSwap = m_timer.restart();
-            m_waitToSwapMicros = 1000;
-            usleep(1000);
-        } else { // if (m_vSyncMode == ST_TIMER) {
-            emit vsyncRender(); // renders the new waveform.
-
-            // wait until rendering was scheduled. It might be delayed due a
-            // pending swap (depends one driver vSync settings)
-            m_semaVsyncSlot.acquire();
-
-            // qDebug() << "ST_TIMER                      " << lastMicros << restMicros;
-            int remainingForSwap = m_waitToSwapMicros - static_cast<int>(
-                m_timer.elapsed().toIntegerMicros());
-            // waiting for interval by sleep
-            if (remainingForSwap > 100) {
-                usleep(remainingForSwap);
-            }
-
-            // swaps the new waveform to front in case of gl-wf
-            emit vsyncSwap();
-
-            // wait until swap occurred. It might be delayed due to driver vSync
-            // settings.
-            m_semaVsyncSlot.acquire();
-
-            // <- Assume we are VSynced here ->
-            m_sinceLastSwap = m_timer.restart();
-            int lastSwapTime = static_cast<int>(m_sinceLastSwap.toIntegerMicros());
-            if (remainingForSwap < 0) {
-                // Our swapping call was already delayed
-                // The real swap might happens on the following VSync, depending on driver settings
-                m_droppedFrames++; // Count as Real Time Error
-            }
-            // try to stay in right intervals
-            m_waitToSwapMicros = m_syncIntervalTimeMicros +
-                    ((m_waitToSwapMicros - lastSwapTime) % m_syncIntervalTimeMicros);
-        }
-    }
-}
 
 int VSyncThread::elapsed() {
     return static_cast<int>(m_timer.elapsed().toIntegerMicros());
@@ -127,8 +68,38 @@ int VSyncThread::droppedFrames() {
     return m_droppedFrames;
 }
 
-void VSyncThread::vsyncSlotFinished() {
-    m_semaVsyncSlot.release();
+bool VSyncThread::shouldSwap(bool maySleep) {
+    if (m_waitToSwapMicros == 0) {
+        m_waitToSwapMicros = m_syncIntervalTimeMicros;
+        m_timer.start();
+    }
+
+    m_remainingForSwapMicros = m_waitToSwapMicros -
+            static_cast<int>(m_timer.elapsed().toIntegerMicros());
+
+    if (m_remainingForSwapMicros > 1000) {
+        if (!maySleep) {
+            return false;
+        }
+        if (m_remainingForSwapMicros > 4000) {
+            QThread::usleep(1000);
+            return false;
+        }
+        QThread::usleep(m_remainingForSwapMicros);
+    }
+    return true;
+}
+
+void VSyncThread::swapped() {
+    m_sinceLastSwap = m_timer.restart();
+    int lastSwapTime = static_cast<int>(m_sinceLastSwap.toIntegerMicros());
+    if (m_remainingForSwapMicros < 0) {
+        // Our swapping call was already delayed
+        // The real swap might happens on the following VSync, depending on driver settings
+        m_droppedFrames++; // Count as Real Time Error
+    }
+    m_waitToSwapMicros = m_syncIntervalTimeMicros +
+            ((m_waitToSwapMicros - lastSwapTime) % m_syncIntervalTimeMicros);
 }
 
 void VSyncThread::getAvailableVSyncTypes(QList<QPair<int, QString>>* pList) {

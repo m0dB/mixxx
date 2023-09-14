@@ -8,7 +8,8 @@
 #include "util/performancetimer.h"
 #include "widget/wglwidget.h"
 
-class VSyncThread : public QThread {
+// NOTE note a thread anymore, more a VSyncTimer
+class VSyncThread : public QObject {
     Q_OBJECT
   public:
     enum VSyncMode {
@@ -23,8 +24,6 @@ class VSyncThread : public QThread {
     VSyncThread(QObject* pParent);
     ~VSyncThread();
 
-    void run();
-
     bool waitForVideoSync(WGLWidget* glw);
     int elapsed();
     int toNextSyncMicros();
@@ -33,7 +32,8 @@ class VSyncThread : public QThread {
     int droppedFrames();
     void setSwapWait(int sw);
     int fromTimerToNextSyncMicros(const PerformanceTimer& timer);
-    void vsyncSlotFinished();
+    bool shouldSwap(bool maySleep);
+    void swapped();
     void getAvailableVSyncTypes(QList<QPair<int, QString>>* list);
     void setupSync(WGLWidget* glw, int index);
     void waitUntilSwap(WGLWidget* glw);
@@ -41,21 +41,18 @@ class VSyncThread : public QThread {
     int getSyncIntervalTimeMicros() const {
         return m_syncIntervalTimeMicros;
     }
-  signals:
-    void vsyncRender();
-    void vsyncSwap();
 
   private:
     bool m_bDoRendering;
     bool m_vSyncTypeChanged;
     int m_syncIntervalTimeMicros;
     int m_waitToSwapMicros;
+    int m_remainingForSwapMicros;
     enum VSyncMode m_vSyncMode;
     bool m_syncOk;
     int m_droppedFrames;
     int m_swapWait;
     PerformanceTimer m_timer;
-    QSemaphore m_semaVsyncSlot;
     double m_displayFrameRate;
     int m_vSyncPerRendering;
     mixxx::Duration m_sinceLastSwap;

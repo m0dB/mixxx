@@ -103,6 +103,9 @@ class MixxxMainWindow : public QMainWindow {
     bool loadConfiguredSkin();
 
     bool confirmExit();
+
+    void idle();
+
     QDialog::DialogCode soundDeviceErrorDlg(
             const QString &title, const QString &text, bool* retryClicked);
     QDialog::DialogCode soundDeviceBusyDlg(bool* retryClicked);
@@ -139,4 +142,6 @@ class MixxxMainWindow : public QMainWindow {
     mixxx::ScreenSaverPreference m_inhibitScreensaver;
 
     QSet<ControlObject*> m_skinCreatedControls;
+
+    bool m_mayRenderAndSwap{};
 };

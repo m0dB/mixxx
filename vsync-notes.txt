@@ -1,0 +1,3 @@
+sinceLastSwap
+ 67         const int refToVSync = pVSyncThread->fromTimerToNextSyncMicros(data.m_referenceTime);
+ 68         const int syncIntervalTimeMicros = pVSyncThread->getSyncIntervalTimeMicros();

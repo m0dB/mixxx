@@ -412,6 +412,18 @@ void MixxxMainWindow::initialize() {
             &PlayerInfo::currentPlayingTrackChanged,
             this,
             &MixxxMainWindow::slotUpdateWindowTitle);
+
+    // setup idle
+    QTimer* timer = new QTimer(this);
+    connect(timer, &QTimer::timeout, this, &MixxxMainWindow::idle);
+    timer->start();
+    m_mayRenderAndSwap = true;
+}
+
+void MixxxMainWindow::idle() {
+    m_mayRenderAndSwap = false; // to avoid recursion
+    WaveformWidgetFactory::instance()->maybeRenderAndSwap(true);
+    m_mayRenderAndSwap = true;
 }
 
 MixxxMainWindow::~MixxxMainWindow() {
@@ -1143,6 +1155,11 @@ bool MixxxMainWindow::loadConfiguredSkin() {
 }
 
 bool MixxxMainWindow::eventFilter(QObject* obj, QEvent* event) {
+    if (m_mayRenderAndSwap && event->type() != QEvent::Paint) {
+        m_mayRenderAndSwap = false; // to avoid recursion
+        WaveformWidgetFactory::instance()->maybeRenderAndSwap(false);
+        m_mayRenderAndSwap = true;
+    }
     if (event->type() == QEvent::ToolTip) {
         // always show tooltips in the preferences window
         QWidget* activeWindow = QApplication::activeWindow();
