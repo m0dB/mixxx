@@ -16,6 +16,7 @@
 #include "defs_urls.h"
 #include "sources/soundsourceproxy.h"
 #include "util/assert.h"
+#include "widget/wspinnyglsl.h"
 
 CmdlineArgs::CmdlineArgs()
         : m_startInFullscreen(false), // Initialize vars
@@ -178,6 +179,18 @@ bool CmdlineArgs::parse(const QStringList& arguments, CmdlineArgs::ParseMode mod
                             : QString());
     parser.addOption(enableVuMeterGL);
 
+    const QCommandLineOption skipSpinnyTextures(QStringLiteral("skipSpinnyTextures"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Skip Spinny Textures")
+                            : QString());
+    parser.addOption(skipSpinnyTextures);
+
+    const QCommandLineOption skipSpinnyVinylQuality(QStringLiteral("skipSpinnyVinylQuality"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Skip Spinny Vinyl Quality")
+                            : QString());
+    parser.addOption(skipSpinnyVinylQuality);
+
     const QCommandLineOption controllerDebug(QStringLiteral("controller-debug"),
             forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
                                       "Causes Mixxx to display/log all of the controller data it "
@@ -339,6 +352,10 @@ bool CmdlineArgs::parse(const QStringList& arguments, CmdlineArgs::ParseMode mod
     }
 
     m_useVuMeterGL = parser.isSet(enableVuMeterGL);
+
+    WSpinnyGLSL::sSkipTextures = parser.isSet(skipSpinnyTextures);
+    WSpinnyGLSL::sSkipVinylQuality = parser.isSet(skipSpinnyVinylQuality);
+
     m_controllerDebug = parser.isSet(controllerDebug) || parser.isSet(controllerDebugDeprecated);
     m_controllerAbortOnWarning = parser.isSet(controllerAbortOnWarning);
     m_developer = parser.isSet(developer);

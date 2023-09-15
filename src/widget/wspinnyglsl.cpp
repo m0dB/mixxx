@@ -3,6 +3,9 @@
 #include "util/assert.h"
 #include "util/texture.h"
 
+bool WSpinnyGLSL::sSkipTextures = false;
+bool WSpinnyGLSL::sSkipVinylQuality = false;
+
 WSpinnyGLSL::WSpinnyGLSL(
         QWidget* parent,
         const QString& group,
@@ -28,6 +31,8 @@ void WSpinnyGLSL::cleanupGL() {
 }
 
 void WSpinnyGLSL::coverChanged() {
+    if (sSkipTextures)
+        return;
     if (isContextValid()) {
         makeCurrentIfNeeded();
         m_pLoadedCoverTextureScaled.reset(createTexture(m_loadedCoverScaled));
@@ -48,10 +53,14 @@ void WSpinnyGLSL::resizeGL(int w, int h) {
     Q_UNUSED(w);
     Q_UNUSED(h);
     // The images were resized in WSpinnyBase::resizeEvent.
+    if (sSkipTextures)
+        return;
     updateTextures();
 }
 
 void WSpinnyGLSL::updateTextures() {
+    if (sSkipTextures)
+        return;
     m_pBgTexture.reset(createTexture(m_pBgImage));
     m_pMaskTexture.reset(createTexture(m_pMaskImage));
     m_pFgTextureScaled.reset(createTexture(m_fgImageScaled));
@@ -64,6 +73,8 @@ void WSpinnyGLSL::setupVinylSignalQuality() {
 
 void WSpinnyGLSL::updateVinylSignalQualityImage(
         const QColor& qual_color, const unsigned char* data) {
+    if (sSkipVinylQuality)
+        return;
     m_vinylQualityColor = qual_color;
     if (m_pQTexture) {
         makeCurrentIfNeeded();
@@ -106,54 +117,51 @@ void WSpinnyGLSL::paintGL() {
         return;
     }
 
-    if (m_state == 3) {
-        drawTextureFromWaveformRenderMark(0.f, 0.f, m_testTexture.get());
-        return;
-    }
+    if (!sSkipTextures) {
+        glClearColor(0.f, 0.f, 0.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT);
 
-    m_textureShader.bind();
+        if (m_state == 3) {
+            drawTextureFromWaveformRenderMark(0.f, 0.f, m_testTexture.get());
+            return;
+        }
 
-    int matrixLocation = m_textureShader.matrixLocation();
-    int samplerLocation = m_textureShader.samplerLocation();
-    int positionLocation = m_textureShader.positionLocation();
-    int texcoordLocation = m_textureShader.texcoordLocation();
+        m_textureShader.bind();
 
-    QMatrix4x4 matrix;
-    m_textureShader.setUniformValue(matrixLocation, matrix);
+        int matrixLocation = m_textureShader.matrixLocation();
+        int samplerLocation = m_textureShader.samplerLocation();
+        int positionLocation = m_textureShader.positionLocation();
+        int texcoordLocation = m_textureShader.texcoordLocation();
 
-    m_textureShader.enableAttributeArray(positionLocation);
-    m_textureShader.enableAttributeArray(texcoordLocation);
+        QMatrix4x4 matrix;
+        m_textureShader.setUniformValue(matrixLocation, matrix);
 
-    m_textureShader.setUniformValue(samplerLocation, 0);
+        m_textureShader.enableAttributeArray(positionLocation);
+        m_textureShader.enableAttributeArray(texcoordLocation);
 
-    if (m_state == 11 || m_state == 4) {
+        m_textureShader.setUniformValue(samplerLocation, 0);
+
         if (m_pBgTexture) {
             drawTexture(m_pBgTexture.get());
         }
-    }
 
-    if (m_state == 11 || m_state == 5 || m_state == 10 || m_state == 12) {
-        if (m_state == 12) {
-            glClearColor(1.f, 1.f, 0.f, 1.f);
-            glClear(GL_COLOR_BUFFER_BIT);
-        }
         if (m_bShowCover && m_pLoadedCoverTextureScaled) {
             drawTexture(m_pLoadedCoverTextureScaled.get());
         }
-    }
 
-    if (m_state == 11 || m_state == 6 || m_state == 10) {
         if (m_pMaskTexture) {
             drawTexture(m_pMaskTexture.get());
         }
     }
 
-    if (m_state == 11 || m_state == 7) {
+    if (!sSkipVinylQuality) {
         // Overlay the signal quality drawing if vinyl is active
         if (shouldDrawVinylQuality()) {
-            m_textureShader.release();
+            if (!sSkipTextures)
+                m_textureShader.release();
             drawVinylQuality();
-            m_textureShader.bind();
+            if (!sSkipTextures)
+                m_textureShader.bind();
         }
     }
 
@@ -163,8 +171,9 @@ void WSpinnyGLSL::paintGL() {
     // and draw the image at the corner.
     // p.translate(width() / 2, height() / 2);
 
-    if (m_state == 11 || m_state == 8) {
+    if (!sSkipTextures) {
         bool paintGhost = m_bGhostPlayback && m_pGhostTextureScaled;
+        int matrixLocation = m_textureShader.matrixLocation();
 
         if (paintGhost) {
             QMatrix4x4 rotate;
@@ -173,9 +182,7 @@ void WSpinnyGLSL::paintGL() {
 
             drawTexture(m_pGhostTextureScaled.get());
         }
-    }
 
-    if (m_state == 11 || m_state == 9) {
         if (m_pFgTextureScaled) {
             QMatrix4x4 rotate;
             rotate.rotate(m_fAngle, 0, 0, -1);
@@ -183,24 +190,28 @@ void WSpinnyGLSL::paintGL() {
 
             drawTexture(m_pFgTextureScaled.get());
         }
-    }
 
-    m_textureShader.release();
+        m_textureShader.release();
+    }
 }
 
 void WSpinnyGLSL::initializeGL() {
-    updateTextures();
+    if (!sSkipTextures) {
+        updateTextures();
 
-    m_pQTexture.reset(new QOpenGLTexture(QOpenGLTexture::Target2D));
-    m_pQTexture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
-    m_pQTexture->setSize(m_iVinylScopeSize, m_iVinylScopeSize);
-    m_pQTexture->setFormat(QOpenGLTexture::R8_UNorm);
-    m_pQTexture->allocateStorage(QOpenGLTexture::Red, QOpenGLTexture::UInt8);
+        m_pQTexture.reset(new QOpenGLTexture(QOpenGLTexture::Target2D));
+        m_pQTexture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+        m_pQTexture->setSize(m_iVinylScopeSize, m_iVinylScopeSize);
+        m_pQTexture->setFormat(QOpenGLTexture::R8_UNorm);
+        m_pQTexture->allocateStorage(QOpenGLTexture::Red, QOpenGLTexture::UInt8);
 
-    generateTestTexture();
+        generateTestTexture();
 
-    m_textureShader.init();
-    m_vinylQualityShader.init();
+        m_textureShader.init();
+    }
+    if (!sSkipVinylQuality) {
+        m_vinylQualityShader.init();
+    }
 }
 
 void WSpinnyGLSL::drawTexture(QOpenGLTexture* texture) {
@@ -285,7 +296,7 @@ void WSpinnyGLSL::mouseMoveEvent(QMouseEvent*) {
 
 void WSpinnyGLSL::mousePressEvent(QMouseEvent*) {
     m_state++;
-    if (m_state == 13) {
+    if (m_state == 5) {
         m_state = 0;
     }
 }

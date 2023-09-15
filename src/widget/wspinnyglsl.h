@@ -19,6 +19,9 @@ class WSpinnyGLSL : public WSpinnyBase {
     void mousePressEvent(QMouseEvent* e) override;
     void mouseReleaseEvent(QMouseEvent* e) override;
 
+    static bool sSkipTextures;
+    static bool sSkipVinylQuality;
+
   private:
     void draw() override;
     void coverChanged() override;
