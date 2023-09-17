@@ -1310,7 +1310,8 @@ QWidget* LegacySkinParser::parseSpinny(const QDomElement& node) {
     WSpinnyBase* pSpinny;
     if (qApp->platformName() == QLatin1String("xcb")) {
 #ifdef MIXXX_USE_QOPENGL
-        if (pWaveformWidgetFactory->isOpenGlShaderAvailable()) {
+        if (pWaveformWidgetFactory->isOpenGlShaderAvailable() &&
+                !CmdlineArgs::Instance().getUseLegacySpinny()) {
             pSpinny = new WSpinnyGLSL(nullptr, group, m_pConfig, m_pVCManager, pPlayer);
         } else
 #endif
@@ -1320,7 +1321,8 @@ QWidget* LegacySkinParser::parseSpinny(const QDomElement& node) {
         pSpinny->setParent(m_pParent);
     } else {
 #ifdef MIXXX_USE_QOPENGL
-        if (pWaveformWidgetFactory->isOpenGlShaderAvailable()) {
+        if (pWaveformWidgetFactory->isOpenGlShaderAvailable() &&
+                !CmdlineArgs::Instance().getUseLegacySpinny()) {
             pSpinny = new WSpinnyGLSL(m_pParent, group, m_pConfig, m_pVCManager, pPlayer);
         } else
 #endif
