@@ -155,6 +155,8 @@ void WSpinnyGLSL::paintGL() {
 }
 
 void WSpinnyGLSL::initializeGL() {
+    initializeOpenGLFunctions();
+
     updateTextures();
 
     m_pQTexture.reset(new QOpenGLTexture(QOpenGLTexture::Target2D));
