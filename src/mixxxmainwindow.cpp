@@ -1155,11 +1155,11 @@ bool MixxxMainWindow::loadConfiguredSkin() {
 }
 
 bool MixxxMainWindow::eventFilter(QObject* obj, QEvent* event) {
-    if (m_mayRenderAndSwap && event->type() != QEvent::Paint) {
-        m_mayRenderAndSwap = false; // to avoid recursion
-        WaveformWidgetFactory::instance()->maybeRenderAndSwap(false);
-        m_mayRenderAndSwap = true;
-    }
+    // if (m_mayRenderAndSwap && event->type() != QEvent::Paint) {
+    //     m_mayRenderAndSwap = false; // to avoid recursion
+    //     WaveformWidgetFactory::instance()->maybeRenderAndSwap(false);
+    //     m_mayRenderAndSwap = true;
+    // }
     if (event->type() == QEvent::ToolTip) {
         // always show tooltips in the preferences window
         QWidget* activeWindow = QApplication::activeWindow();
