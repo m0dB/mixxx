@@ -89,5 +89,5 @@ void WGLWidget::swapBuffers() {
 }
 
 bool WGLWidget::shouldRender() const {
-    return m_pOpenGLWindow && m_pOpenGLWindow->isExposed();
+    return m_pOpenGLWindow && m_pOpenGLWindow->isExposed() && m_pOpenGLWindow->isInitialized();
 }

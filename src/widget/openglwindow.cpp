@@ -10,8 +10,7 @@
 #include "widget/wglwidget.h"
 
 OpenGLWindow::OpenGLWindow(WGLWidget* pWidget)
-        : m_pWidget(pWidget),
-          m_dirty(false) {
+        : m_pWidget(pWidget) {
     setFormat(WaveformWidgetFactory::getSurfaceFormat());
 }
 
@@ -21,6 +20,7 @@ OpenGLWindow::~OpenGLWindow() {
 void OpenGLWindow::initializeGL() {
     if (m_pWidget) {
         m_pWidget->initializeGL();
+        m_initialized = true;
     }
 }
 

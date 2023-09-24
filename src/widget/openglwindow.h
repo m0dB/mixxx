@@ -15,6 +15,10 @@ class OpenGLWindow : public QOpenGLWindow {
 
     void widgetDestroyed();
 
+    bool isInitialized() const {
+        return m_initialized;
+    }
+
   private:
     void initializeGL() override;
     void paintGL() override;
@@ -22,5 +26,6 @@ class OpenGLWindow : public QOpenGLWindow {
     bool event(QEvent* pEv) override;
 
     WGLWidget* m_pWidget;
-    bool m_dirty;
+    bool m_dirty{};
+    bool m_initialized{};
 };
