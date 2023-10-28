@@ -28,6 +28,7 @@
 #include "waveform/visualsmanager.h"
 #include "waveform/vsyncthread.h"
 #ifdef MIXXX_USE_QOPENGL
+#include "waveform/widgets/allshader/centroidwaveformwidget.h"
 #include "waveform/widgets/allshader/filteredwaveformwidget.h"
 #include "waveform/widgets/allshader/hsvwaveformwidget.h"
 #include "waveform/widgets/allshader/lrrgbwaveformwidget.h"
@@ -976,6 +977,13 @@ void WaveformWidgetFactory::evaluateWidgets() {
             setWaveformVarsByType.operator()<allshader::HSVWaveformWidget>();
             break;
 #endif
+        case WaveformWidgetType::AllShaderCentroidWaveform:
+#ifndef MIXXX_USE_QOPENGL
+            continue;
+#else
+            setWaveformVarsByType.operator()<allshader::CentroidWaveformWidget>();
+            break;
+#endif
         default:
             DEBUG_ASSERT(!"Unexpected WaveformWidgetType");
             continue;
@@ -1071,6 +1079,9 @@ WaveformWidgetAbstract* WaveformWidgetFactory::createWaveformWidget(
             break;
         case WaveformWidgetType::AllShaderHSVWaveform:
             widget = new allshader::HSVWaveformWidget(viewer->getGroup(), viewer);
+            break;
+        case WaveformWidgetType::AllShaderCentroidWaveform:
+            widget = new allshader::CentroidWaveformWidget(viewer->getGroup(), viewer);
             break;
 #else
         case WaveformWidgetType::QtSimpleWaveform:
