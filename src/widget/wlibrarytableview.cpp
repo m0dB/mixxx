@@ -34,6 +34,7 @@ WLibraryTableView::WLibraryTableView(QWidget* parent,
     setSelectionBehavior(QAbstractItemView::SelectRows);
     setSelectionMode(QAbstractItemView::ExtendedSelection);
 
+    setTextElideMode(Qt::ElideNone);
     setWordWrap(false);
     setShowGrid(false);
     setCornerButtonEnabled(false);

@@ -1,6 +1,7 @@
 #include "library/tabledelegates/locationdelegate.h"
 
 #include <QPainter>
+#include <QTableView>
 
 #include "moc_locationdelegate.cpp"
 
@@ -21,9 +22,15 @@ void LocationDelegate::paintItem(
         // }
         painter->setPen(QPen(option.palette.highlightedText().color()));
     }
-    QString elidedText = option.fontMetrics.elidedText(
-            index.data().toString(),
-            Qt::ElideLeft,
-            columnWidth(index));
-    painter->drawText(option.rect, Qt::AlignVCenter, elidedText);
+    QTableView* tableView = qobject_cast<QTableView*>(parent());
+    const auto elide = tableView->textElideMode();
+    if (elide == Qt::ElideNone) {
+        painter->drawText(option.rect, Qt::AlignVCenter, index.data().toString());
+    } else {
+        QString elidedText = option.fontMetrics.elidedText(
+                index.data().toString(),
+                elide,
+                columnWidth(index));
+        painter->drawText(option.rect, Qt::AlignVCenter, elidedText);
+    }
 }
