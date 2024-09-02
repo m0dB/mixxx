@@ -27,6 +27,8 @@ add_library(rendergraph_sg
     rendergraph/uniformscache.h
     rendergraph/uniformset.cpp
     rendergraph/uniformset.h
+    rendergraph/openglnode.h
+    rendergraph/openglnode.cpp
     ../common/rendergraph/material/endoftrackmaterial.cpp
     ../common/rendergraph/material/endoftrackmaterial.h
     ../common/rendergraph/material/patternmaterial.cpp

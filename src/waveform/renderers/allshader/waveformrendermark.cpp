@@ -73,15 +73,27 @@ class WaveformMarkNodeGraphics : public WaveformMark::Graphics {
             : m_pNode(std::make_unique<WaveformMarkNode>(pOwner, image)) {
     }
     void updateTexture(const QImage& image) {
+        if (!m_pNode) {
+            return;
+        }
         waveformMarkNode()->updateTexture(image);
     }
     void update(const QMatrix4x4& matrix, float x, float y, float devicePixelRatio) {
+        if (!m_pNode) {
+            return;
+        }
         waveformMarkNode()->update(matrix, x, y, devicePixelRatio);
     }
     float textureWidth() const {
+        if (!m_pNode) {
+            return 0.0;
+        }
         return waveformMarkNode()->textureWidth();
     }
     float textureHeight() const {
+        if (!m_pNode) {
+            return 0.0;
+        }
         return waveformMarkNode()->textureHeight();
     }
     void setNode(std::unique_ptr<Node>&& pNode) {
