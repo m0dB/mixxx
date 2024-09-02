@@ -15,7 +15,7 @@ AttributeSet::AttributeSet()
 AttributeSet::AttributeSet(std::initializer_list<Attribute> list, const std::vector<QString>& names)
         : AttributeSet() {
     int i = 0;
-    for (auto item : list) {
+    for (const auto& item : list) {
         add(Attribute{item.m_tupleSize, item.m_primitiveType, names[i++]});
     }
 }

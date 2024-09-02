@@ -4,7 +4,7 @@ using namespace rendergraph;
 
 UniformSet::UniformSet(std::initializer_list<Uniform> list, const std::vector<QString>& names) {
     int i = 0;
-    for (auto item : list) {
+    for (const auto& item : list) {
         add(Uniform{item.m_type, names[i++]});
     }
 }

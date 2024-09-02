@@ -2744,6 +2744,10 @@ if(QML)
   target_link_libraries(mixxx-qml-lib PUBLIC mixxx-proto)
   target_link_libraries(mixxx-qml-libplugin PUBLIC mixxx-proto)
 
+  # Rendergraph
+  add_subdirectory(src/rendergraph/scenegraph)
+  target_link_libraries(mixxx-qml-lib PUBLIC rendergraph_sg)
+
   target_precompile_headers(mixxx-qml-lib PUBLIC
     ${MIXXX_COMMON_PRECOMPILED_HEADER}
   )

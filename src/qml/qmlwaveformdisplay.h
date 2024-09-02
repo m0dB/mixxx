@@ -11,7 +11,15 @@
 #include "util/performancetimer.h"
 #include "waveform/isynctimeprovider.h"
 
+// #include "rendergraph/opengl/graph.h"
+#include "rendergraph/opacitynode.h"
+
 class WaveformDisplayRange;
+
+namespace allshader {
+class WaveformRenderMark;
+class WaveformRenderMarkRange;
+} // namespace allshader
 
 namespace mixxx {
 namespace qml {
@@ -35,7 +43,8 @@ class QmlWaveformDisplay : public QQuickItem, ISyncTimeProvider {
     void setGroup(const QString& group);
     const QString& getGroup() const;
 
-    QSGNode* updatePaintNode(QSGNode* old, QQuickItem::UpdatePaintNodeData*) override;
+    QSGNode* updatePaintNode(QSGNode*, UpdatePaintNodeData*) override;
+    void geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry) override;
 
     int fromTimerToNextSyncMicros(const PerformanceTimer& timer) override;
     int getSyncIntervalTimeMicros() const override {
@@ -64,6 +73,11 @@ class QmlWaveformDisplay : public QQuickItem, ISyncTimeProvider {
     QString m_group;
     WaveformDisplayRange* m_pWaveformDisplayRange{};
     int m_syncIntervalTimeMicros{1000000 / 60}; // TODO don't hardcode
+
+    std::unique_ptr<rendergraph::Node> m_pGraph;
+    rendergraph::OpacityNode* m_pOpacityNode;
+    allshader::WaveformRenderMark* m_pWaveformRenderMark;
+    allshader::WaveformRenderMarkRange* m_pWaveformRenderMarkRange;
 };
 
 } // namespace qml
