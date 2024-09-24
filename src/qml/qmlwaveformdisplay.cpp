@@ -4,11 +4,31 @@
 #include <QSGFlatColorMaterial>
 #include <QSGSimpleRectNode>
 #include <QSGVertexColorMaterial>
+#include <QtQuick/QSGGeometryNode>
+#include <QtQuick/QSGMaterial>
+#include <QtQuick/QSGRectangleNode>
+#include <QtQuick/QSGTexture>
+#include <QtQuick/QSGTextureProvider>
 #include <cmath>
 
 #include "mixer/basetrackplayer.h"
 #include "moc_qmlwaveformdisplay.cpp"
 #include "qml/qmlplayerproxy.h"
+#include "rendergraph/context.h"
+#include "rendergraph/node.h"
+#include "rendergraph/opacitynode.h"
+#include "waveform/renderers/allshader/waveformrenderbeat.h"
+#include "waveform/renderers/allshader/waveformrendererendoftrack.h"
+// #include "waveform/renderers/allshader/waveformrendererfiltered.h"
+// #include "waveform/renderers/allshader/waveformrendererhsv.h"
+#include "waveform/renderers/allshader/waveformrendererpreroll.h"
+#include "waveform/renderers/allshader/waveformrendererrgb.h"
+// #include "waveform/renderers/allshader/waveformrenderersimple.h"
+// #include "waveform/renderers/allshader/waveformrendererslipmode.h"
+// #include "waveform/renderers/allshader/waveformrendererstem.h"
+// #include "waveform/renderers/allshader/waveformrenderertextured.h"
+#include "waveform/renderers/allshader/waveformrendermark.h"
+#include "waveform/renderers/allshader/waveformrendermarkrange.h"
 #include "waveform/renderers/waveformdisplayrange.h"
 
 namespace {
@@ -61,13 +81,24 @@ inline float frac16_sqrt(uint32_t x) {
     return Frac16SqrtTableSingleton::getInstance().get(x);
 }
 
+void appendChildTo(std::unique_ptr<rendergraph::Node>& pNode, rendergraph::TreeNode* pChild) {
+    pNode->appendChildNode(std::unique_ptr<rendergraph::TreeNode>(pChild));
+}
+void appendChildTo(std::unique_ptr<rendergraph::OpacityNode>& pNode,
+        rendergraph::TreeNode* pChild) {
+    pNode->appendChildNode(std::unique_ptr<rendergraph::TreeNode>(pChild));
+}
+
 } // namespace
+
+using namespace allshader;
 
 namespace mixxx {
 namespace qml {
 
 QmlWaveformDisplay::QmlWaveformDisplay(QQuickItem* parent)
         : QQuickItem(parent),
+          WaveformWidgetRenderer("[Channel1]"),
           m_pPlayer(nullptr) {
     Frac16SqrtTableSingleton::getInstance(); // initializes table
 
@@ -77,7 +108,7 @@ QmlWaveformDisplay::QmlWaveformDisplay(QQuickItem* parent)
 }
 
 QmlWaveformDisplay::~QmlWaveformDisplay() {
-    delete m_pWaveformDisplayRange;
+    // delete m_pWaveformDisplayRange;
 }
 
 void QmlWaveformDisplay::slotWindowChanged(QQuickWindow* window) {
@@ -115,233 +146,84 @@ inline uint32_t math_max_u32(uint32_t a, uint32_t b, uint32_t c) {
     return std::max(a, std::max(b, c));
 }
 
-QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePaintNodeData*) {
-    // TODO @m0dB make members and property
-    uint32_t m_rgbLowColor_r = 255;
-    uint32_t m_rgbMidColor_r = 0;
-    uint32_t m_rgbHighColor_r = 0;
-    uint32_t m_rgbLowColor_g = 0;
-    uint32_t m_rgbMidColor_g = 255;
-    uint32_t m_rgbHighColor_g = 0;
-    uint32_t m_rgbLowColor_b = 0;
-    uint32_t m_rgbMidColor_b = 0;
-    uint32_t m_rgbHighColor_b = 255;
-
-    auto* clipNode = dynamic_cast<QSGClipNode*>(old);
-
-    if (m_pWaveformDisplayRange == nullptr) {
-        return clipNode;
-    }
-
-    if (!m_pCurrentTrack) {
-        return clipNode;
-    }
-
-    ConstWaveformPointer waveform = m_pCurrentTrack->getWaveform();
-    if (waveform.isNull()) {
-        return clipNode;
-    }
-
-    const int dataSize = waveform->getDataSize();
-    if (dataSize <= 1) {
-        return clipNode;
-    }
-
-    const WaveformData* data = waveform->data();
-    if (data == nullptr) {
-        return clipNode;
-    }
-
-    m_pWaveformDisplayRange->resize(static_cast<int>(width() * window()->devicePixelRatio()),
-            static_cast<int>(height() * window()->devicePixelRatio()),
-            window()->devicePixelRatio());
-    // this as ISyncTimeProvider
-    m_pWaveformDisplayRange->onPreRender(this);
-
-    QSGGeometry* geometry;
-    QSGGeometryNode* geometryNode;
-    QSGSimpleRectNode* bgNode;
-    if (!clipNode) {
-        clipNode = new QSGClipNode();
-        geometryNode = new QSGGeometryNode();
-        geometry = new QSGGeometry(QSGGeometry::defaultAttributes_ColoredPoint2D(), 0);
-        geometryNode->setGeometry(geometry);
-        geometryNode->setFlag(QSGNode::OwnsGeometry);
-
-        auto material = new QSGVertexColorMaterial();
-        geometry->setDrawingMode(QSGGeometry::DrawLines);
-        geometryNode->setMaterial(material);
-        geometryNode->setFlag(QSGNode::OwnsMaterial);
-
-        bgNode = new QSGSimpleRectNode();
-        bgNode->appendChildNode(geometryNode);
-        // TODO @m0dB make property
-        bgNode->setColor(Qt::black);
-
-        clipNode->appendChildNode(bgNode);
-    } else {
-        bgNode = dynamic_cast<QSGSimpleRectNode*>(clipNode->childAtIndex(0));
-        geometryNode = dynamic_cast<QSGGeometryNode*>(bgNode->childAtIndex(0));
-        geometry = geometryNode->geometry();
-    }
-    bgNode->setRect(boundingRect());
-    clipNode->setClipRect(boundingRect());
-    clipNode->setIsRectangular(true);
-
-    const float devicePixelRatio = m_pWaveformDisplayRange->getDevicePixelRatio();
-    const float invDevicePixelRatio = 1.f / devicePixelRatio;
-
-    const int length = static_cast<int>(static_cast<float>(m_pWaveformDisplayRange->getLength()));
-
-    // length waveform lines, 1 reference line, 2 points per line
-    geometry->allocate((length + 1) * 2);
-
-    QSGGeometry::ColoredPoint2D* vertices = geometry->vertexDataAsColoredPoint2D();
-
-    const double firstVisualIndex = m_pWaveformDisplayRange->getFirstDisplayedPosition() * dataSize;
-    const double lastVisualIndex = m_pWaveformDisplayRange->getLastDisplayedPosition() * dataSize;
-
-    // Represents the # of waveform data points per horizontal pixel.
-    const double visualIncrementPerPixel =
-            (lastVisualIndex - firstVisualIndex) / static_cast<double>(length);
-
-    // Per-band gain from the EQ knobs.
-    float allGain(1.0), lowGain(1.0), midGain(1.0), highGain(1.0);
-    // getGains(&allGain, &lowGain, &midGain, &highGain);
-
-    // gains in 8 bit fractional fixed point
-    const uint32_t frac8LowGain(toFrac8(lowGain));
-    const uint32_t frac8MidGain(toFrac8(midGain));
-    const uint32_t frac8HighGain(toFrac8(highGain));
-
-    const float breadth =
-            static_cast<float>(m_pWaveformDisplayRange->getBreadth()) /
-            devicePixelRatio;
-    const float halfBreadth = breadth / 2.0f;
-
-    const float heightFactor = allGain * halfBreadth;
-
-    // Effective visual index of x
-    double xVisualSampleIndex = firstVisualIndex;
-
-    int vertexIndex = 0;
-
-    QColor axesColor(255, 255, 255, 255); // TODO @m0dB
-    vertices[vertexIndex++].set(0.f,
-            halfBreadth,
-            axesColor.red(),
-            axesColor.green(),
-            axesColor.blue(),
-            axesColor.alpha());
-    vertices[vertexIndex++].set(static_cast<float>(length / devicePixelRatio),
-            halfBreadth,
-            axesColor.red(),
-            axesColor.green(),
-            axesColor.blue(),
-            axesColor.alpha());
-
-    for (int pos = 0; pos < length; ++pos) {
-        // Our current pixel (x) corresponds to a number of visual samples
-        // (visualSamplerPerPixel) in our waveform object. We take the max of
-        // all the data points on either side of xVisualSampleIndex within a
-        // window of 'maxSamplingRange' visual samples to measure the maximum
-        // data point contained by this pixel.
-        double maxSamplingRange = visualIncrementPerPixel / 2.0;
-
-        // Since xVisualSampleIndex is in visual-samples (e.g. R,L,R,L) we want
-        // to check +/- maxSamplingRange frames, not samples. To do this, divide
-        // xVisualSampleIndex by 2. Since frames indices are integers, we round
-        // to the nearest integer by adding 0.5 before casting to int.
-        int visualFrameStart = int(xVisualSampleIndex / 2.0 - maxSamplingRange + 0.5);
-        int visualFrameStop = int(xVisualSampleIndex / 2.0 + maxSamplingRange + 0.5);
-        const int lastVisualFrame = dataSize / 2 - 1;
-
-        // We now know that some subset of [visualFrameStart, visualFrameStop]
-        // lies within the valid range of visual frames. Clamp
-        // visualFrameStart/Stop to within [0, lastVisualFrame].
-        visualFrameStart = math_clamp(visualFrameStart, 0, lastVisualFrame);
-        visualFrameStop = math_clamp(visualFrameStop, 0, lastVisualFrame);
-
-        int visualIndexStart = visualFrameStart * 2;
-        int visualIndexStop = visualFrameStop * 2;
-
-        visualIndexStart = std::max(visualIndexStart, 0);
-        visualIndexStop = std::min(visualIndexStop, dataSize);
-
-        uint32_t maxLow = 0;
-        uint32_t maxMid = 0;
-        uint32_t maxHigh = 0;
-
-        uint32_t maxAll[2] = {0, 0};
-
-        for (int chn = 0; chn < 2; chn++) {
-            // data is interleaved left / right
-            for (int i = visualIndexStart + chn; i < visualIndexStop + chn; i += 2) {
-                const WaveformData& waveformData = data[i];
-
-                maxLow = math_max_u32(maxLow, waveformData.filtered.low);
-                maxMid = math_max_u32(maxMid, waveformData.filtered.mid);
-                maxHigh = math_max_u32(maxHigh, waveformData.filtered.high);
-
-                uint32_t all = frac8Pow2ToFrac16(waveformData.filtered.low * frac8LowGain) +
-                        frac8Pow2ToFrac16(waveformData.filtered.mid * frac8MidGain) +
-                        frac8Pow2ToFrac16(waveformData.filtered.high * frac8HighGain);
-                maxAll[chn] = math_max(maxAll[chn], all);
-            }
-        }
-
-        // We can do these integer calculation safely, staying well within the
-        // 32 bit range, and we will normalize below.
-        maxLow *= frac8LowGain;
-        maxMid *= frac8MidGain;
-        maxHigh *= frac8HighGain;
-        uint32_t red = maxLow * m_rgbLowColor_r + maxMid * m_rgbMidColor_r +
-                maxHigh * m_rgbHighColor_r;
-        uint32_t green = maxLow * m_rgbLowColor_g + maxMid * m_rgbMidColor_g +
-                maxHigh * m_rgbHighColor_g;
-        uint32_t blue = maxLow * m_rgbLowColor_b + maxMid * m_rgbMidColor_b +
-                maxHigh * m_rgbHighColor_b;
-
-        // Normalize red, green, blue to 0..255, using the maximum of the three and
-        // this fixed point arithmetic trick:
-        // max / ((max>>8)+1) = 0..255
-        uint32_t max = math_max_u32(red, green, blue);
-        max >>= 8;
-
-        if (max == 0) {
-            // avoid division by 0
-            red = 0;
-            green = 0;
-            blue = 0;
-        } else {
-            max++; // important, otherwise we normalize to 256
-
-            red /= max;
-            green /= max;
-            blue /= max;
-        }
-
-        const float fpos = static_cast<float>(pos) * invDevicePixelRatio;
-        vertices[vertexIndex++].set(fpos,
-                halfBreadth - heightFactor * frac16_sqrt(maxAll[0]),
-                red,
-                green,
-                blue,
-                255);
-        vertices[vertexIndex++].set(fpos,
-                halfBreadth + heightFactor * frac16_sqrt(maxAll[1]),
-                red,
-                green,
-                blue,
-                255);
-
-        xVisualSampleIndex += visualIncrementPerPixel;
-    }
-
-    geometryNode->markDirty(QSGNode::DirtyGeometry);
+void QmlWaveformDisplay::geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry) {
+    m_geometryChanged = true;
     update();
+    QQuickItem::geometryChange(newGeometry, oldGeometry);
+}
 
-    return clipNode;
+QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*) {
+    QSGRectangleNode* bgNode;
+    if (!node) {
+        bgNode = window()->createRectangleNode();
+        bgNode->setColor(QColor(0, 0, 0, 255));
+        bgNode->setRect(boundingRect());
+
+        // rendergraph::Context context(window());
+        m_waveformNode = std::make_unique<rendergraph::Node>();
+        auto pOpacityNode = std::make_unique<rendergraph::OpacityNode>();
+
+        // appendChildTo(m_waveformNode, addRenderer<WaveformRenderBackground>());
+        appendChildTo(pOpacityNode, addRenderer<WaveformRendererEndOfTrack>());
+        appendChildTo(pOpacityNode, addRenderer<WaveformRendererPreroll>());
+        m_pWaveformRenderMarkRange = addRenderer<WaveformRenderMarkRange>();
+        appendChildTo(pOpacityNode, m_pWaveformRenderMarkRange);
+
+        // #ifdef __STEM__
+        //         // The following two renderers work in tandem: if the rendered waveform is
+        //         // for a stem track, WaveformRendererSignalBase will skip rendering and let
+        //         // WaveformRendererStem do the rendering, and vice-versa.
+        //         appendChildTo(pOpacityNode, addRenderer<WaveformRendererStem>());
+        // #endif
+        allshader::WaveformRendererSignalBase* waveformSignalRenderer =
+                // addWaveformSignalRenderer(
+                //         type, options, ::WaveformRendererAbstract::Play);
+                addRenderer<WaveformRendererRGB>(::WaveformRendererAbstract::Play);
+
+        // appendChildTo(pOpacityNode,
+        // dynamic_cast<rendergraph::TreeNode*>(waveformSignalRenderer));
+
+        appendChildTo(pOpacityNode, addRenderer<WaveformRenderBeat>());
+        m_pWaveformRenderMark = addRenderer<WaveformRenderMark>();
+        appendChildTo(pOpacityNode, m_pWaveformRenderMark);
+
+        // if the signal renderer supports slip, we add it again, now for slip, together with the
+        // other slip renderers
+        // if (waveformSignalRenderer && waveformSignalRenderer->supportsSlip()) {
+        //     // The following renderer will add an overlay waveform if a slip is in progress
+        //     appendChildTo(pOpacityNode, addRenderer<WaveformRendererSlipMode>());
+        //     appendChildTo(pOpacityNode,
+        //             addRenderer<WaveformRendererPreroll>(
+        //                     ::WaveformRendererAbstract::Slip));
+        // #ifdef __STEM__
+        //     appendChildTo(pOpacityNode,
+        //             addRenderer<WaveformRendererStem>(
+        //                     ::WaveformRendererAbstract::Slip));
+        // #endif
+        //     appendChildTo(pOpacityNode,
+        //             dynamic_cast<rendergraph::TreeNode*>(addWaveformSignalRenderer(
+        //                     type, options, ::WaveformRendererAbstract::Slip)));
+        //     appendChildTo(pOpacityNode,
+        //             addRenderer<WaveformRenderBeat>(
+        //                     ::WaveformRendererAbstract::Slip));
+        //     appendChildTo(pOpacityNode,
+        //             addRenderer<WaveformRenderMark>(
+        //                     ::WaveformRendererAbstract::Slip));
+        // }
+
+        bgNode->appendChildNode(m_waveformNode->backendNode());
+
+        node = bgNode;
+    } else {
+        bgNode = static_cast<QSGRectangleNode*>(node);
+    }
+
+    if (m_geometryChanged) {
+        bgNode->setRect(boundingRect());
+        m_geometryChanged = false;
+    }
+
+    return node;
 }
 
 QmlPlayerProxy* QmlWaveformDisplay::getPlayer() const {
@@ -388,9 +270,9 @@ void QmlWaveformDisplay::setGroup(const QString& group) {
     emit groupChanged(group);
 
     // TODO m0dB unique_ptr ?
-    delete m_pWaveformDisplayRange;
-    m_pWaveformDisplayRange = new WaveformDisplayRange(m_group);
-    m_pWaveformDisplayRange->init();
+    // delete m_pWaveformDisplayRange;
+    // m_pWaveformDisplayRange = new WaveformDisplayRange(m_group);
+    // m_pWaveformDisplayRange->init();
 }
 
 const QString& QmlWaveformDisplay::getGroup() const {
@@ -433,9 +315,9 @@ void QmlWaveformDisplay::setCurrentTrack(TrackPointer pTrack) {
     }
     slotWaveformUpdated();
 
-    if (m_pWaveformDisplayRange) {
-        m_pWaveformDisplayRange->setTrack(m_pCurrentTrack);
-    }
+    // if (m_pWaveformDisplayRange) {
+    //     m_pWaveformDisplayRange->setTrack(m_pCurrentTrack);
+    // }
 }
 
 void QmlWaveformDisplay::slotWaveformUpdated() {

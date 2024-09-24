@@ -10,5 +10,6 @@ class OpacityNode;
 class rendergraph::OpacityNode : public rendergraph::BaseOpacityNode,
                                  public rendergraph::TreeNode {
   public:
+    using rendergraph::TreeNode::appendChildNode;
     OpacityNode();
 };

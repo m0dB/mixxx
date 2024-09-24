@@ -111,17 +111,25 @@ ApplicationWindow {
             }
         }
 
-        WaveformRow {
+        // WaveformRow {
+        //     id: deck1waveform
+
+        //     group: "[Channel1]"
+        //     width: root.width
+        //     height: 60
+        //     visible: !root.maximizeLibrary
+
+        //     FadeBehavior on visible {
+        //         fadeTarget: deck1waveform
+        //     }
+        // }
+
+        Skin.WaveformDisplay {
             id: deck1waveform
 
-            group: "[Channel1]"
             width: root.width
             height: 60
-            visible: !root.maximizeLibrary
-
-            FadeBehavior on visible {
-                fadeTarget: deck1waveform
-            }
+            group: "[Channel1]"
         }
 
         WaveformRow {
