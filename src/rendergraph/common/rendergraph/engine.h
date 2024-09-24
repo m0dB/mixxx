@@ -23,6 +23,7 @@ class rendergraph::Engine {
     void render(TreeNode* pNode);
     void resize(TreeNode* pNode, int, int);
 
+    // FIXME: SceneGraph takes ownership and leads to a double free
     const std::unique_ptr<TreeNode> m_pTopNode;
     std::vector<TreeNode*> m_pPreprocessNodes;
     std::vector<TreeNode*> m_pInitializeNodes;

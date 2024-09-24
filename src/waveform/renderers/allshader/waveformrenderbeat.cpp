@@ -1,6 +1,7 @@
 #include "waveform/renderers/allshader/waveformrenderbeat.h"
 
 #include <QDomNode>
+#include <QSGNode>
 
 #include "rendergraph/geometry.h"
 #include "rendergraph/material/unicolormaterial.h"
@@ -16,11 +17,15 @@ using namespace rendergraph;
 namespace allshader {
 
 WaveformRenderBeat::WaveformRenderBeat(WaveformWidgetRenderer* waveformWidget,
-        ::WaveformRendererAbstract::PositionSource type)
+        ::WaveformRendererAbstract::PositionSource type,
+        QColor color)
         : ::WaveformRendererAbstract(waveformWidget),
-          m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip) {
+          m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip),
+          m_color(color) {
     initForRectangles<UniColorMaterial>(0);
     setUsePreprocess(true);
+    reinterpret_cast<QSGNode*>(backendNode())->setFlag(QSGNode::OwnsGeometry);
+    reinterpret_cast<QSGNode*>(backendNode())->setFlag(QSGNode::OwnsMaterial);
 }
 
 void WaveformRenderBeat::setup(const QDomNode& node, const SkinContext& context) {
@@ -37,6 +42,7 @@ void WaveformRenderBeat::draw(QPainter* painter, QPaintEvent* event) {
 void WaveformRenderBeat::preprocess() {
     if (!preprocessInner()) {
         geometry().allocate(0);
+        reinterpret_cast<QSGNode*>(backendNode())->markDirty(QSGNode::DirtyGeometry);
     }
 }
 
@@ -100,7 +106,6 @@ bool WaveformRenderBeat::preprocessInner() {
 
     const int reserved = numBeatsInRange * numVerticesPerLine;
     geometry().allocate(reserved);
-    // TODO set dirty for scenegraph
 
     VertexUpdater vertexUpdater{geometry().vertexDataAs<Geometry::Point2D>()};
 
@@ -120,6 +125,7 @@ bool WaveformRenderBeat::preprocessInner() {
         vertexUpdater.addRectangle({x1, 0.f},
                 {x2, m_isSlipRenderer ? rendererBreadth / 2 : rendererBreadth});
     }
+    markDirtyGeometry();
 
     DEBUG_ASSERT(reserved == vertexUpdater.index());
 
@@ -127,6 +133,7 @@ bool WaveformRenderBeat::preprocessInner() {
 
     material().setUniform(0, matrix);
     material().setUniform(1, m_color);
+    markDirtyMaterial();
 
     return true;
 }

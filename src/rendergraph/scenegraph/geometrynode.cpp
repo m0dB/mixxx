@@ -1,5 +1,7 @@
 #include "rendergraph/geometrynode.h"
 
+#include <QSGNode>
+
 using namespace rendergraph;
 
 GeometryNode::GeometryNode()

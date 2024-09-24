@@ -2,6 +2,7 @@
 
 #include <QDomNode>
 #include <QPainterPath>
+#include <QSGNode>
 #include <array>
 
 #include "rendergraph/context.h"
@@ -68,11 +69,12 @@ WaveformRendererPreroll::WaveformRendererPreroll(
         WaveformWidgetRenderer* waveformWidget,
         ::WaveformRendererAbstract::PositionSource type)
         : ::WaveformRendererAbstract(waveformWidget),
-          m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip) {
-    setGeometry(std::make_unique<Geometry>(PatternMaterial::attributes(), 0));
+          m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip),
+          m_color(QColor(200, 25, 20)) {
     setMaterial(std::make_unique<PatternMaterial>());
-    setUsePreprocess(true);
+    setGeometry(std::make_unique<Geometry>(PatternMaterial::attributes(), 0));
     geometry().setDrawingMode(Geometry::DrawingMode::Triangles);
+    setUsePreprocess(true);
 }
 
 WaveformRendererPreroll::~WaveformRendererPreroll() = default;
@@ -92,7 +94,10 @@ void WaveformRendererPreroll::draw(QPainter* painter, QPaintEvent* event) {
 void WaveformRendererPreroll::preprocess() {
     if (!preprocessInner()) {
         geometry().allocate(0);
+    } else {
+        markDirtyMaterial();
     }
+    markDirtyGeometry();
 }
 
 bool WaveformRendererPreroll::preprocessInner() {
@@ -147,9 +152,8 @@ bool WaveformRendererPreroll::preprocessInner() {
         // has changed size last time.
         m_markerLength = markerLength;
         m_markerBreadth = markerBreadth;
-        Context context;
         dynamic_cast<PatternMaterial&>(material())
-                .setTexture(std::make_unique<Texture>(context,
+                .setTexture(std::make_unique<Texture>(m_context,
                         drawPrerollImage(m_markerLength,
                                 m_markerBreadth,
                                 m_waveformRenderer->getDevicePixelRatio(),

@@ -12,5 +12,20 @@ Item {
     MixxxControls.WaveformDisplay {
         anchors.fill: parent
         group: root.group
+
+        Mixxx.WaveformRendererEndOfTrack {
+            color: 'blue'
+        }
+
+        Mixxx.WaveformRendererPreroll {
+            color: 'red'
+        }
+
+        Mixxx.WaveformRendererRGB {
+        }
+
+        Mixxx.WaveformRendererBeat {
+            color: 'green'
+        }
     }
 }

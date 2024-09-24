@@ -1,5 +1,7 @@
 #include "waveform/renderers/allshader/waveformrendererrgb.h"
 
+#include <QSGNode>
+
 #include "rendergraph/material/rgbmaterial.h"
 #include "rendergraph/vertexupdaters/rgbvertexupdater.h"
 #include "track/track.h"
@@ -26,6 +28,8 @@ WaveformRendererRGB::WaveformRendererRGB(WaveformWidgetRenderer* waveformWidget,
           m_options(options) {
     initForRectangles<RGBMaterial>(0);
     setUsePreprocess(true);
+    reinterpret_cast<QSGNode*>(backendNode())->setFlag(QSGNode::OwnsGeometry);
+    reinterpret_cast<QSGNode*>(backendNode())->setFlag(QSGNode::OwnsMaterial);
 }
 
 void WaveformRendererRGB::onSetup(const QDomNode& node) {
@@ -35,6 +39,7 @@ void WaveformRendererRGB::onSetup(const QDomNode& node) {
 void WaveformRendererRGB::preprocess() {
     if (!preprocessInner()) {
         geometry().allocate(0);
+        reinterpret_cast<QSGNode*>(backendNode())->markDirty(QSGNode::DirtyGeometry);
     }
 }
 
@@ -117,6 +122,7 @@ bool WaveformRendererRGB::preprocessInner() {
             ((splitLeftRight && !m_isSlipRenderer ? length * 2 : length) + 1);
 
     geometry().allocate(reserved);
+    reinterpret_cast<QSGNode*>(backendNode())->markDirty(QSGNode::DirtyGeometry);
     // TODO set dirty for scenegraph
 
     RGBVertexUpdater vertexUpdater{geometry().vertexDataAs<Geometry::RGBColoredPoint2D>()};
@@ -250,6 +256,7 @@ bool WaveformRendererRGB::preprocessInner() {
 
     const QMatrix4x4 matrix = matrixForWidgetGeometry(m_waveformRenderer, true);
     material().setUniform(0, matrix);
+    markDirtyMaterial();
 
     return true;
 }

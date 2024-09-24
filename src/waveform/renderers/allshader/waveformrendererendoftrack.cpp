@@ -1,6 +1,7 @@
 #include "waveform/renderers/allshader/waveformrendererendoftrack.h"
 
 #include <QDomNode>
+#include <QSGNode>
 #include <QVector4D>
 #include <memory>
 
@@ -22,10 +23,11 @@ using namespace rendergraph;
 namespace allshader {
 
 WaveformRendererEndOfTrack::WaveformRendererEndOfTrack(
-        WaveformWidgetRenderer* waveformWidget)
+        WaveformWidgetRenderer* waveformWidget, QColor color)
         : ::WaveformRendererAbstract(waveformWidget),
           m_pEndOfTrackControl(nullptr),
-          m_pTimeRemainingControl(nullptr) {
+          m_pTimeRemainingControl(nullptr),
+          m_color(color) {
     setGeometry(std::make_unique<Geometry>(EndOfTrackMaterial::attributes(), 4));
     setMaterial(std::make_unique<EndOfTrackMaterial>());
     setUsePreprocess(true);
@@ -44,11 +46,6 @@ void WaveformRendererEndOfTrack::draw(QPainter* painter, QPaintEvent* event) {
 bool WaveformRendererEndOfTrack::init() {
     m_timer.restart();
 
-    m_pEndOfTrackControl.reset(new ControlProxy(
-            m_waveformRenderer->getGroup(), "end_of_track"));
-    m_pTimeRemainingControl.reset(new ControlProxy(
-            m_waveformRenderer->getGroup(), "time_remaining"));
-
     return true;
 }
 
@@ -62,6 +59,15 @@ void WaveformRendererEndOfTrack::setup(const QDomNode& node, const SkinContext& 
 }
 
 void WaveformRendererEndOfTrack::preprocess() {
+    if (!m_pEndOfTrackControl) {
+        m_pEndOfTrackControl = std::make_unique<ControlProxy>(
+                m_waveformRenderer->getGroup(), "end_of_track");
+    }
+    if (!m_pTimeRemainingControl) {
+        m_pTimeRemainingControl = std::make_unique<ControlProxy>(
+                m_waveformRenderer->getGroup(), "time_remaining");
+    }
+
     const int elapsed = m_timer.elapsed().toIntegerMillis() % kBlinkingPeriodMillis;
 
     const double blinkIntensity = (double)(2 * abs(elapsed - kBlinkingPeriodMillis / 2)) /
@@ -80,11 +86,12 @@ void WaveformRendererEndOfTrack::preprocess() {
         color.setAlphaF(static_cast<float>(alpha));
 
         material().setUniform(0, color);
+        markDirtyMaterial();
     }
 }
 
 bool WaveformRendererEndOfTrack::isSubtreeBlocked() const {
-    return !m_pEndOfTrackControl->toBool();
+    return !(!m_pEndOfTrackControl || m_pEndOfTrackControl->toBool());
 }
 
 } // namespace allshader

@@ -6,6 +6,7 @@ namespace rendergraph {
 class ExampleNode1;
 class ExampleNode2;
 class ExampleNode3;
+class ExampleNode4;
 class ExampleTopNode;
 } // namespace rendergraph
 
@@ -35,6 +36,16 @@ class rendergraph::ExampleNode3 : public rendergraph::GeometryNode {
     ExampleNode3();
 
     void setTexture(std::unique_ptr<Texture> texture);
+};
+
+class rendergraph::ExampleNode4 : public rendergraph::GeometryNode {
+  public:
+    static constexpr float positionArray[] = {-1.f, -1.f, 1.f, -1.f, -1.f, 1.f, 1.f, 1.f};
+    static constexpr float texcoordArray[] = {0.f, 0.f, 1.f, 0.f, 0.f, 1.f, 1.f, 1.f};
+
+    ExampleNode4();
+
+    void createTexture(rendergraph::Context& context);
 };
 
 class rendergraph::ExampleTopNode : public rendergraph::Node {

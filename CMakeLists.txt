@@ -2790,7 +2790,23 @@ if(QML)
     src/qml/qmlchainpresetmodel.cpp
     src/qml/qmlwaveformoverview.cpp
     src/qml/qmlwaveformdisplay.cpp
+    src/qml/qmlwaveformrenderer.cpp
     src/waveform/renderers/waveformdisplayrange.cpp
+
+    src/waveform/renderers/allshader/digitsrenderer.cpp
+    src/waveform/renderers/allshader/matrixforwidgetgeometry.cpp
+    src/waveform/renderers/allshader/waveformrenderbeat.cpp
+    src/waveform/renderers/allshader/waveformrenderer.cpp
+    src/waveform/renderers/allshader/waveformrendererendoftrack.cpp
+    # src/waveform/renderers/allshader/waveformrendererslipmode.cpp
+    # src/waveform/renderers/allshader/waveformrendererfiltered.cpp
+    # src/waveform/renderers/allshader/waveformrendererhsv.cpp
+    src/waveform/renderers/allshader/waveformrendererpreroll.cpp
+    src/waveform/renderers/allshader/waveformrendererrgb.cpp
+    src/waveform/renderers/allshader/waveformrenderersignalbase.cpp
+    # src/waveform/renderers/allshader/waveformrenderersimple.cpp
+    src/waveform/renderers/allshader/waveformrendermark.cpp
+    src/waveform/renderers/allshader/waveformrendermarkrange.cpp
     # The following sources need to be in this target to get QML_ELEMENT properly interpreted
     src/control/controlmodel.cpp
     src/control/controlsortfiltermodel.cpp
@@ -3815,6 +3831,13 @@ add_subdirectory(src/rendergraph/opengl)
 add_subdirectory(res/shaders/rendergraph)
 target_link_libraries(mixxx-lib PUBLIC rendergraph_gl)
 target_compile_definitions(mixxx-lib PRIVATE rendergraph=rendergraph_gl)
+target_compile_definitions(mixxx-lib PRIVATE allshader=allshader_gl)
+if(QML)
+  add_subdirectory(src/rendergraph/scenegraph)
+  target_link_libraries(mixxx-qml-lib PRIVATE rendergraph_sg)
+  target_compile_definitions(mixxx-qml-lib PRIVATE rendergraph=rendergraph_sg)
+  target_compile_definitions(mixxx-qml-lib PRIVATE allshader=allshader_sg)
+endif()
 
 # WavPack audio file support
 find_package(wavpack)

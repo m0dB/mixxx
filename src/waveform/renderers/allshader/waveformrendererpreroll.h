@@ -3,6 +3,7 @@
 #include <QColor>
 #include <memory>
 
+#include "rendergraph/context.h"
 #include "rendergraph/geometrynode.h"
 #include "util/class.h"
 #include "waveform/renderers/waveformrendererabstract.h"
@@ -22,6 +23,16 @@ class allshader::WaveformRendererPreroll final
             WaveformWidgetRenderer* waveformWidget,
             ::WaveformRendererAbstract::PositionSource type =
                     ::WaveformRendererAbstract::Play);
+    explicit WaveformRendererPreroll(
+            WaveformWidgetRenderer* waveformWidget,
+            rendergraph::Context context,
+            QColor color,
+            ::WaveformRendererAbstract::PositionSource type =
+                    ::WaveformRendererAbstract::Play)
+            : WaveformRendererPreroll(waveformWidget, type) {
+        m_context = context;
+        m_color = color;
+    }
     ~WaveformRendererPreroll() override;
 
     // Pure virtual from WaveformRendererAbstract, not used
@@ -34,6 +45,7 @@ class allshader::WaveformRendererPreroll final
 
   private:
     QColor m_color;
+    rendergraph::Context m_context;
     float m_markerBreadth{};
     float m_markerLength{};
     bool m_isSlipRenderer;
