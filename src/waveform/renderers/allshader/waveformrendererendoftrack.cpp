@@ -24,8 +24,12 @@ namespace allshader {
 WaveformRendererEndOfTrack::WaveformRendererEndOfTrack(
         WaveformWidgetRenderer* waveformWidget)
         : ::WaveformRendererAbstract(waveformWidget),
-          m_pEndOfTrackControl(nullptr),
-          m_pTimeRemainingControl(nullptr) {
+          GeometryNode(),
+          m_pEndOfTrackControl(new ControlProxy(
+                  waveformWidget->getGroup(), "end_of_track")),
+          m_pTimeRemainingControl(new ControlProxy(
+                  waveformWidget->getGroup(), "time_remaining")),
+          m_color(QColor(200, 25, 20)) {
     setGeometry(std::make_unique<Geometry>(EndOfTrackMaterial::attributes(), 4));
     setMaterial(std::make_unique<EndOfTrackMaterial>());
     setUsePreprocess(true);

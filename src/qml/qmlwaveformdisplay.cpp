@@ -166,8 +166,8 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
         // appendChildTo(m_waveformNode, addRenderer<WaveformRenderBackground>());
         appendChildTo(pOpacityNode, addRenderer<WaveformRendererEndOfTrack>());
         appendChildTo(pOpacityNode, addRenderer<WaveformRendererPreroll>());
-        m_pWaveformRenderMarkRange = addRenderer<WaveformRenderMarkRange>();
-        appendChildTo(pOpacityNode, m_pWaveformRenderMarkRange);
+        // m_pWaveformRenderMarkRange = addRenderer<WaveformRenderMarkRange>();
+        // appendChildTo(pOpacityNode, m_pWaveformRenderMarkRange);
 
         // #ifdef __STEM__
         //         // The following two renderers work in tandem: if the rendered waveform is
@@ -175,17 +175,17 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
         //         // WaveformRendererStem do the rendering, and vice-versa.
         //         appendChildTo(pOpacityNode, addRenderer<WaveformRendererStem>());
         // #endif
-        allshader::WaveformRendererSignalBase* waveformSignalRenderer =
-                // addWaveformSignalRenderer(
-                //         type, options, ::WaveformRendererAbstract::Play);
-                addRenderer<WaveformRendererRGB>(::WaveformRendererAbstract::Play);
+        // allshader::WaveformRendererSignalBase* waveformSignalRenderer =
+        //         // addWaveformSignalRenderer(
+        //         //         type, options, ::WaveformRendererAbstract::Play);
+        //         addRenderer<WaveformRendererRGB>(::WaveformRendererAbstract::Play);
 
         // appendChildTo(pOpacityNode,
         // dynamic_cast<rendergraph::TreeNode*>(waveformSignalRenderer));
 
-        appendChildTo(pOpacityNode, addRenderer<WaveformRenderBeat>());
-        m_pWaveformRenderMark = addRenderer<WaveformRenderMark>();
-        appendChildTo(pOpacityNode, m_pWaveformRenderMark);
+        // appendChildTo(pOpacityNode, addRenderer<WaveformRenderBeat>());
+        // m_pWaveformRenderMark = addRenderer<WaveformRenderMark>();
+        // appendChildTo(pOpacityNode, m_pWaveformRenderMark);
 
         // if the signal renderer supports slip, we add it again, now for slip, together with the
         // other slip renderers
@@ -211,6 +211,7 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
         //                     ::WaveformRendererAbstract::Slip));
         // }
 
+        m_waveformNode->appendChildNode(std::move(pOpacityNode));
         bgNode->appendChildNode(m_waveformNode->backendNode());
 
         node = bgNode;

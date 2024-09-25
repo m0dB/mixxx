@@ -2791,6 +2791,7 @@ if(QML)
     src/qml/qmlwaveformdisplay.cpp
     src/waveform/renderers/waveformdisplayrange.cpp
 
+    src/waveform/renderers/allshader/digitsrenderer.cpp
     src/waveform/renderers/allshader/matrixforwidgetgeometry.cpp
     src/waveform/renderers/allshader/waveformrenderbeat.cpp
     src/waveform/renderers/allshader/waveformrenderer.cpp
@@ -3826,10 +3827,14 @@ endif()
 # rendergraph
 add_subdirectory(src/rendergraph/opengl)
 add_subdirectory(res/shaders/rendergraph)
-target_link_libraries(mixxx-lib PUBLIC rendergraph_gl)
+target_link_libraries(mixxx-lib PRIVATE rendergraph_gl)
+target_compile_definitions(mixxx-lib PRIVATE rendergraph=rendergraph_gl)
+target_compile_definitions(mixxx-lib PRIVATE allshader=allshader_gl)
 if(QML)
   add_subdirectory(src/rendergraph/scenegraph)
   target_link_libraries(mixxx-qml-lib PRIVATE rendergraph_sg)
+  target_compile_definitions(mixxx-qml-lib PRIVATE rendergraph=rendergraph_sg)
+  target_compile_definitions(mixxx-qml-lib PRIVATE allshader=allshader_sg)
 endif()
 
 # WavPack audio file support
