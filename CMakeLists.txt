@@ -3811,6 +3811,7 @@ endif()
 add_subdirectory(src/rendergraph/opengl)
 add_subdirectory(res/shaders/rendergraph)
 target_link_libraries(mixxx-lib PUBLIC rendergraph_gl)
+target_compile_definitions(mixxx-lib PRIVATE rendergraph=rendergraph_gl)
 
 # WavPack audio file support
 find_package(wavpack)
