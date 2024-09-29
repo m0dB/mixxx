@@ -85,7 +85,14 @@ class QmlWaveformDisplay : public QQuickItem, ISyncTimeProvider, public Waveform
 
     int m_syncIntervalTimeMicros{1000000 / 60}; // TODO don't hardcode
 
-    bool m_geometryChanged{false};
+    enum class DirtyFlag : int {
+        None = 0x0,
+        Geometry = 0x1,
+        Window = 0x2,
+    };
+    Q_DECLARE_FLAGS(DirtyFlags, DirtyFlag)
+
+    DirtyFlags m_dirtyFlag{DirtyFlag::None};
     std::unique_ptr<rendergraph::Engine> m_pEngine;
     QList<QmlWaveformRendererFactory*> m_waveformRenderers;
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QRect>
 #include <memory>
 
 #include "backend/basenode.h"
@@ -14,7 +15,7 @@ class rendergraph::TreeNode {
     TreeNode(rendergraph::BaseNode* pBackendNode)
             : m_pBackendNode(pBackendNode) {
     }
-    virtual ~TreeNode() = default;
+    virtual ~TreeNode();
 
     void appendChildNode(std::unique_ptr<TreeNode>&& pChild);
 
@@ -53,7 +54,7 @@ class rendergraph::TreeNode {
 
     virtual void initialize() {
     }
-    virtual void resize(int, int) {
+    virtual void resize(const QRectF&) {
     }
 
     void setEngine(Engine* pEngine) {

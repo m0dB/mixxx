@@ -2,6 +2,7 @@
 
 #include <QDomNode>
 #include <QPainterPath>
+#include <QQuickWindow>
 #include <QSGNode>
 #include <array>
 
@@ -215,7 +216,13 @@ bool WaveformRendererPreroll::preprocessInner() {
 
     DEBUG_ASSERT(reserved == vertexUpdater.index());
 
-    const QMatrix4x4 matrix = matrixForWidgetGeometry(m_waveformRenderer, false);
+    // const QMatrix4x4 matrix = matrixForWidgetGeometry(m_waveformRenderer, false);
+    QMatrix4x4 matrix;
+    // qDebug() << m_geometry << m_context.window()->effectiveDevicePixelRatio()
+    // << m_markerLength << m_markerBreadth <<
+    // m_waveformRenderer->getDevicePixelRatio(); matrix.ortho(QRectF(0, 0,
+    // 1280, 400));
+    matrix.ortho(QRectF(QPointF(0, -36), m_context.window()->size()));
 
     material().setUniform(0, matrix);
 

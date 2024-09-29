@@ -18,6 +18,10 @@ void Engine::addToEngine(TreeNode* pNode) {
     }
 }
 
+Engine::~Engine() {
+    m_pTopNode.release();
+}
+
 void Engine::render() {
     assert(false && "should not be called for scenegraph, rendering is handled by Qt");
 }
@@ -33,11 +37,11 @@ void Engine::initialize() {
     m_pInitializeNodes.clear();
 }
 
-void Engine::resize(TreeNode* pNode, int w, int h) {
-    pNode->resize(w, h);
+void Engine::resize(TreeNode* pNode, const QRectF& boundingRect) {
+    pNode->resize(boundingRect);
     pNode = pNode->firstChild();
     while (pNode) {
-        resize(pNode, w, h);
+        resize(pNode, boundingRect);
         pNode = pNode->nextSibling();
     }
 }

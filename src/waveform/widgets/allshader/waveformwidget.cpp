@@ -165,7 +165,7 @@ void WaveformWidget::initializeGL() {
 }
 
 void WaveformWidget::resizeGL(int w, int h) {
-    m_pEngine->resize(w, h);
+    m_pEngine->resize(QRectF(0, 0, w, h));
 }
 
 void WaveformWidget::paintEvent(QPaintEvent* event) {

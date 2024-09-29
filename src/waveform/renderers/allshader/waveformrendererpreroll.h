@@ -43,12 +43,17 @@ class allshader::WaveformRendererPreroll final
     // Virtual for rendergraph::Node
     void preprocess() override;
 
+    void resize(const QRectF& geometry) override {
+        m_geometry = geometry;
+    }
+
   private:
     QColor m_color;
     rendergraph::Context m_context;
     float m_markerBreadth{};
     float m_markerLength{};
     bool m_isSlipRenderer;
+    QRectF m_geometry;
 
     bool preprocessInner();
 

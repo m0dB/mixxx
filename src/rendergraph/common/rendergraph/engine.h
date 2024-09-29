@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QRect>
 #include <memory>
 #include <vector>
 
@@ -12,19 +13,21 @@ class Engine;
 class rendergraph::Engine {
   public:
     Engine(std::unique_ptr<TreeNode> pNode);
+    ~Engine();
     void initialize();
     void render();
-    void resize(int w, int h);
+    void resize(const QRectF&);
     void preprocess();
     void addToEngine(TreeNode* pNode);
 
   private:
     void initialize(TreeNode* pNode);
     void render(TreeNode* pNode);
-    void resize(TreeNode* pNode, int, int);
+    void resize(TreeNode* pNode, const QRectF&);
 
-    // FIXME: SceneGraph takes ownership and leads to a double free
-    const std::unique_ptr<TreeNode> m_pTopNode;
+    // Cannot be const as it needs to be release on SceneGraph since the
+    // ownership is transmitted to QSG
+    std::unique_ptr<TreeNode> m_pTopNode;
     std::vector<TreeNode*> m_pPreprocessNodes;
     std::vector<TreeNode*> m_pInitializeNodes;
 };

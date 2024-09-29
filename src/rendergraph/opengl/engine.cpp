@@ -20,6 +20,9 @@ void Engine::addToEngine(TreeNode* pNode) {
     }
 }
 
+Engine::~Engine() {
+}
+
 void Engine::render() {
     if (!m_pInitializeNodes.empty()) {
         initialize();
@@ -56,12 +59,12 @@ void Engine::initialize() {
     m_pInitializeNodes.clear();
 }
 
-void Engine::resize(TreeNode* pNode, int w, int h) {
-    pNode->backendNode()->resizeBackend(w, h);
-    pNode->resize(w, h);
+void Engine::resize(TreeNode* pNode, const QRectF& boundingRect) {
+    pNode->backendNode()->resizeBackend(boundingRect.width(), boundingRect.height());
+    pNode->resize(boundingRect);
     pNode = pNode->firstChild();
     while (pNode) {
-        resize(pNode, w, h);
+        resize(pNode, boundingRect);
         pNode = pNode->nextSibling();
     }
 }

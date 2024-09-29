@@ -8,6 +8,9 @@ void TreeNode::setUsePreprocess(bool value) {
     backendNode()->setUsePreprocessFlag(value);
 }
 
+TreeNode::~TreeNode() {
+}
+
 void TreeNode::onAppendChildNode(TreeNode* pChild) {
     if (engine() != nullptr &&
             engine() != pChild->engine()) {

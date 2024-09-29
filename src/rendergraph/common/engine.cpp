@@ -11,6 +11,6 @@ Engine::Engine(std::unique_ptr<TreeNode> pNode)
     addToEngine(m_pTopNode.get());
 }
 
-void Engine::resize(int w, int h) {
-    resize(m_pTopNode.get(), w, h);
+void Engine::resize(const QRectF& boundingRect) {
+    resize(m_pTopNode.get(), boundingRect);
 }

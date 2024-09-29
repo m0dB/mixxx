@@ -33,7 +33,7 @@ class allshader::WaveformRenderMark : public ::WaveformRenderMarkBase,
 
     // Virtual for rendergraph::Node
     void initialize() override;
-    void resize(int, int) override;
+    void resize(const QRectF&) override;
     bool isSubtreeBlocked() const override;
 
   private:

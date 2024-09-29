@@ -59,6 +59,8 @@ void QmlWaveformDisplay::componentComplete() {
 }
 
 void QmlWaveformDisplay::slotWindowChanged(QQuickWindow* window) {
+    qDebug() << "WINDOWS CHANGED!!";
+    m_dirtyFlag |= DirtyFlag::Window;
     connect(window, &QQuickWindow::frameSwapped, this, &QmlWaveformDisplay::slotFrameSwapped);
     m_timer.restart();
 }
@@ -77,7 +79,7 @@ void QmlWaveformDisplay::slotFrameSwapped() {
 }
 
 void QmlWaveformDisplay::geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry) {
-    m_geometryChanged = true;
+    m_dirtyFlag |= DirtyFlag::Geometry;
     update();
     resizeRenderer(newGeometry.width(), newGeometry.height(), 1.0);
     QQuickItem::geometryChange(newGeometry, oldGeometry);
@@ -85,18 +87,24 @@ void QmlWaveformDisplay::geometryChange(const QRectF& newGeometry, const QRectF&
 
 QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*) {
     auto* clipNode = dynamic_cast<QSGClipNode*>(node);
+    static rendergraph::GeometryNode* pPreRoll;
 
-    QSGGeometry* geometry;
     QSGSimpleRectNode* bgNode;
-    if (!clipNode) {
+    if (!clipNode || m_dirtyFlag.testFlag(DirtyFlag::Window)) {
+        if (clipNode) {
+            delete clipNode;
+            m_dirtyFlag.setFlag(DirtyFlag::Window, false);
+        }
         clipNode = new QSGClipNode();
         clipNode->setIsRectangular(true);
         bgNode = new QSGSimpleRectNode();
+        bgNode->setRect(boundingRect());
 
         rendergraph::Context context(window());
         auto pTopNode = std::make_unique<rendergraph::Node>();
         // auto pOpacityNode = std::make_unique<rendergraph::OpacityNode>();
 
+        m_rendererStack.clear();
         for (auto pQmlRenderer : m_waveformRenderers) {
             auto renderer = pQmlRenderer->create(this, context);
             addRenderer(renderer.renderer);
@@ -106,21 +114,29 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
 
         // pTopNode->appendChildNode(std::move(pOpacityNode));
         bgNode->appendChildNode(pTopNode->backendNode());
-        m_pEngine = std::make_unique<rendergraph::Engine>(std::move(pTopNode));
+
         bgNode->setColor(QColor(0, 0, 0, 255));
 
         clipNode->appendChildNode(bgNode);
 
+        m_pEngine = std::make_unique<rendergraph::Engine>(std::move(pTopNode));
         m_pEngine->initialize();
         init();
     } else {
         bgNode = dynamic_cast<QSGSimpleRectNode*>(clipNode->childAtIndex(0));
     }
 
-    if (m_geometryChanged) {
-        bgNode->setRect(boundingRect());
-        m_pEngine->resize(boundingRect().width(), boundingRect().height());
+    if (m_dirtyFlag.testFlag(DirtyFlag::Geometry)) {
+        m_dirtyFlag.setFlag(DirtyFlag::Geometry, false);
+        qDebug() << "RECT" << boundingRect();
+        qDebug() << "RECT" << childrenRect();
+        qDebug() << "RECT" << clipRect();
+        // qDebug() << "RECT" << mapToGlobal(QPointF(0, 0));
+        // qDebug() << "RECT" << window()->mapToGlobal(QPointF(0, 0)));
+        qDebug() << "RECT" << window()->size();
+        m_pEngine->resize(boundingRect());
         clipNode->setClipRect(boundingRect());
+        bgNode->setRect(boundingRect());
     }
 
     onPreRender(this);
