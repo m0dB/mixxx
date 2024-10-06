@@ -113,13 +113,25 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
         bgNode->setRect(boundingRect());
         bgNode->setColor(QColor((k & 1) ? 64 : 0, (k & 4) ? 64 : 0, (k & 2) ? 64 : 0, 255));
 
-        auto pEndOfTrackNode =
-                std::make_unique<allshader_sg::WaveformRendererEndOfTrack>(
-                        this, QColor("yellow"));
-        pEndOfTrackNode->init();
-        bgNode->appendChildNode(pEndOfTrackNode->backendNode());
+        auto pTopNode = std::make_unique<rendergraph::Node>();
 
-        m_pEngine = std::make_unique<rendergraph::Engine>(std::move(pEndOfTrackNode));
+        // auto pEndOfTrackNode =
+        //         std::make_unique<allshader_sg::WaveformRendererEndOfTrack>(
+        //                 this, QColor("yellow"));
+        // pEndOfTrackNode->init();
+
+        rendergraph::Context context(window());
+
+        auto pPrerollNode =
+                std::make_unique<allshader_sg::WaveformRendererPreroll>(
+                        this, context, QColor("red"));
+
+        // pTopNode->appendChildNode(std::move(pEndOfTrackNode));
+        pTopNode->appendChildNode(std::move(pPrerollNode));
+
+        bgNode->appendChildNode(pTopNode->backendNode());
+
+        m_pEngine = std::make_unique<rendergraph::Engine>(std::move(pTopNode));
         m_pEngine->initialize();
     }
 

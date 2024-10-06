@@ -103,17 +103,22 @@ void WaveformRendererPreroll::preprocess() {
 bool WaveformRendererPreroll::preprocessInner() {
     const TrackPointer trackInfo = m_waveformRenderer->getTrackInfo();
 
-    if (!trackInfo || (m_isSlipRenderer && !m_waveformRenderer->isSlipActive())) {
-        return false;
-    }
+    // if (!trackInfo || (m_isSlipRenderer && !m_waveformRenderer->isSlipActive())) {
+    //     return false;
+    // }
 
     auto positionType = m_isSlipRenderer ? ::WaveformRendererAbstract::Slip
                                          : ::WaveformRendererAbstract::Play;
 
-    const double firstDisplayedPosition =
-            m_waveformRenderer->getFirstDisplayedPosition(positionType);
+    // const double firstDisplayedPosition = -1.0; //
+    // m_waveformRenderer->getFirstDisplayedPosition(positionType);
     const double lastDisplayedPosition = m_waveformRenderer->getLastDisplayedPosition(positionType);
 
+    static double firstDisplayedPosition = -0.5;
+    firstDisplayedPosition += 0.001;
+    if (firstDisplayedPosition > 0.0) {
+        firstDisplayedPosition -= 1.0;
+    }
     // Check if the pre- or post-roll is on screen. If so, draw little triangles
     // to indicate the respective zones.
     const bool preRollVisible = firstDisplayedPosition < 0;
@@ -127,7 +132,8 @@ bool WaveformRendererPreroll::preprocessInner() {
     const int reserved = (preRollVisible ? numVerticesPerRectangle : 0) +
             (postRollVisible ? numVerticesPerRectangle : 0);
 
-    const double playMarkerPosition = m_waveformRenderer->getPlayMarkerPosition();
+    const double playMarkerPosition = firstDisplayedPosition +
+            1.0; // m_waveformRenderer->getPlayMarkerPosition();
     const double vSamplesPerPixel = m_waveformRenderer->getVisualSamplePerPixel();
     const double numberOfVSamples = m_waveformRenderer->getLength() * vSamplesPerPixel;
 
