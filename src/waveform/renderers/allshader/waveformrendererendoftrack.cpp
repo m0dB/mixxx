@@ -10,7 +10,6 @@
 #include "rendergraph/material/rgbamaterial.h"
 #include "rendergraph/vertexupdaters/rgbavertexupdater.h"
 #include "util/colorcomponents.h"
-#include "waveform/renderers/allshader/matrixforwidgetgeometry.h"
 #include "waveform/renderers/waveformwidgetrenderer.h"
 #include "waveform/waveformwidgetfactory.h"
 #include "widget/wskincolor.h"
@@ -66,15 +65,19 @@ void WaveformRendererEndOfTrack::preprocess() {
                 m_waveformRenderer->getGroup(), "time_remaining");
     }
 
+    static int offset = 0;
     const int elapsedTotal = m_timer.elapsed().toIntegerMillis();
-    const int elapsed = elapsedTotal % kBlinkingPeriodMillis;
+    const int elapsed = (elapsedTotal + offset) % kBlinkingPeriodMillis;
+
+    // for testing
+    offset = (offset == 0) ? kBlinkingPeriodMillis / 4 : 0;
 
     if (elapsedTotal >= m_lastFrameCountLogged + 1000) {
         if (elapsedTotal >= m_lastFrameCountLogged + 2000) {
             m_lastFrameCountLogged = elapsedTotal;
         }
         m_lastFrameCountLogged += 1000;
-        qDebug() << m_frameCount;
+        qDebug() << "FPS:" << m_frameCount;
         m_frameCount = 0;
     }
     m_frameCount++;
@@ -87,26 +90,32 @@ void WaveformRendererEndOfTrack::preprocess() {
             WaveformWidgetFactory::instance()->getEndOfTrackWarningTime();
     const double criticalIntensity = static_cast<double>(elapsed) /
             static_cast<double>(
-                    kBlinkingPeriodMillis); //(remainingTimeTriggerSeconds -
-                                            // remainingTime) /
-                                            // remainingTimeTriggerSeconds;
+                    kBlinkingPeriodMillis); // TODO put back:
+                                            //(remainingTimeTriggerSeconds -
+                                            //  remainingTime) /
+                                            //  remainingTimeTriggerSeconds;
 
     const double alpha = std::max(0.0, std::min(1.0, criticalIntensity * blinkIntensity));
 
+    bool forceSetUniformMatrix = false;
+
     if (alpha != 0.0) {
+        const QSizeF& size = m_waveformRenderer->getSize();
         float r, g, b, a;
         getRgbF(m_color, &r, &g, &b, &a);
 
-        const QRectF& rect = m_waveformRenderer->getRect();
-
-        const float posx0 = static_cast<float>(rect.x());
-        const float posx1 = static_cast<float>(rect.x() + rect.width() / 2.0);
-        const float posx2 = static_cast<float>(rect.x() + rect.width());
-        const float posy1 = static_cast<float>(rect.y());
-        const float posy2 = static_cast<float>(rect.y() + rect.height());
+        const float posx0 = 0.f;
+        const float posx1 = size.width() / 2.f;
+        const float posx2 = size.width();
+        const float posy1 = 0.f;
+        const float posy2 = size.height();
 
         float minAlpha = 0.5f * static_cast<float>(alpha);
         float maxAlpha = 0.83f * static_cast<float>(alpha);
+
+        // force setting the uniform matrix if we start drawing
+        // after not drawing.
+        forceSetUniformMatrix = geometry().vertexCount() == 0;
 
         geometry().allocate(6 * 2);
         RGBAVertexUpdater vertexUpdater{geometry().vertexDataAs<Geometry::RGBAColoredPoint2D>()};
@@ -115,17 +124,20 @@ void WaveformRendererEndOfTrack::preprocess() {
         vertexUpdater.addRectangleHGradient(
                 {posx1, posy1}, {posx2, posy2}, {r, g, b, minAlpha}, {r, g, b, maxAlpha});
 
-        QMatrix4x4 matrix = matrixForWidgetGeometry(m_waveformRenderer, false);
-        material().setUniform(0, matrix);
-
         markDirtyGeometry();
-        markDirtyMaterial();
-    } else {
+    } else if (geometry().vertexCount() != 0) {
         geometry().allocate(0);
+        markDirtyGeometry();
+    }
+    if (m_waveformRenderer->getMatrixChanged() || forceSetUniformMatrix) {
+        const QMatrix4x4 matrix = m_waveformRenderer->getMatrix(false);
+        material().setUniform(0, matrix);
+        markDirtyMaterial();
     }
 }
 
 bool WaveformRendererEndOfTrack::isSubtreeBlocked() const {
+    // TODO put back
     return false;
     // return !(!m_pEndOfTrackControl || m_pEndOfTrackControl->toBool());
 }

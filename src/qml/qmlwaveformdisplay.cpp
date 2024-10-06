@@ -87,12 +87,24 @@ void QmlWaveformDisplay::geometryChange(const QRectF& newGeometry, const QRectF&
 }
 
 QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*) {
-    if (m_dirtyFlag.testFlag(DirtyFlag::Geometry)) {
-        m_dirtyFlag.setFlag(DirtyFlag::Geometry, false);
-        setRect(mapRectToScene(boundingRect()));
-    }
+    // TODO the flag is not set when the position changes,
+    // but only when the size changes. Until we found a way
+    // to detect position changed, call setRect always
+    // (we check internally if the rect changed anyway)
+    //
+    // if (m_dirtyFlag.testFlag(DirtyFlag::Geometry)) {
+    //    m_dirtyFlag.setFlag(DirtyFlag::Geometry, false);
+    //    setRect(mapRectToScene(boundingRect()));
+    //}
+    setRect(mapRectToScene(boundingRect()));
     setViewport(window()->size());
     setDevicePixelRatio(window()->devicePixelRatio());
+
+    // Will recalculate the matrix if any of the above changed.
+    // Nodes can use getMatrixChanged() to check if the matrix
+    // has changed and take appropriate action.
+    updateMatrix();
+
     auto* bgNode = dynamic_cast<QSGSimpleRectNode*>(node);
     if (!bgNode) {
         static int k = 0;
@@ -110,6 +122,7 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
         m_pEngine = std::make_unique<rendergraph::Engine>(std::move(pEndOfTrackNode));
         m_pEngine->initialize();
     }
+
     return bgNode;
 }
 

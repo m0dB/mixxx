@@ -146,41 +146,41 @@ class WaveformWidgetRenderer {
     void setDevicePixelRatio(float devicePixelRatio) {
         if (m_devicePixelRatio != devicePixelRatio) {
             m_devicePixelRatio = devicePixelRatio;
-            m_matricesDirty = true;
+            m_matrixNeedUpdate = true;
         }
     }
     void setViewport(const QSize& viewport) {
         if (m_viewport != viewport) {
             m_viewport = viewport;
-            m_matricesDirty = true;
+            m_matrixNeedUpdate = true;
         }
     }
     void setRect(const QRectF& rect) {
         if (m_rect != rect) {
             m_rect = rect;
-            m_matricesDirty = true;
+            m_matrixNeedUpdate = true;
         }
     }
     const QSize getViewport() const {
         return m_viewport;
     }
-    const QRectF getRect() const {
-        return m_rect;
+    const QSizeF getSize() const {
+        return m_rect.size();
     }
     int getHeight() const {
-        return m_height;
+        return static_cast<int>(m_rect.height());
     }
     int getWidth() const {
-        return m_width;
+        return static_cast<int>(m_rect.width());
     }
     float getDevicePixelRatio() const {
         return m_devicePixelRatio;
     }
     int getLength() const {
-        return m_orientation == Qt::Horizontal ? m_width : m_height;
+        return m_orientation == Qt::Horizontal ? getWidth() : getHeight();
     }
     int getBreadth() const {
-        return m_orientation == Qt::Horizontal ? m_height : m_width;
+        return m_orientation == Qt::Horizontal ? getHeight() : getWidth();
     }
     Qt::Orientation getOrientation() const {
         return m_orientation;
@@ -225,29 +225,13 @@ class WaveformWidgetRenderer {
         return m_trackSamples <= 0.0 || m_pos[::WaveformRendererAbstract::Play] == -1;
     }
 
+    void updateMatrix();
+
+    bool getMatrixChanged() const {
+        return m_matrixChanged;
+    }
+
     const QMatrix4x4& getMatrix(bool applyDevicePixelRatio) {
-        if (m_matricesDirty) {
-            m_matrix = QMatrix4x4();
-            m_matrix.ortho(QRectF(0.0f,
-                    0.0f,
-                    m_viewport.width(),
-                    m_viewport.height()));
-            if (getOrientation() == Qt::Vertical) {
-                m_matrix.rotate(90.f, 0.0f, 0.0f, 1.0f);
-                m_matrix.translate(0.f, -m_viewport.width(), 0.f);
-            }
-            m_matrixDevicePixelRatio = QMatrix4x4();
-            m_matrixDevicePixelRatio.ortho(QRectF(0.0f,
-                    0.0f,
-                    m_viewport.width() * m_devicePixelRatio,
-                    m_viewport.height() * m_devicePixelRatio));
-            if (getOrientation() == Qt::Vertical) {
-                m_matrixDevicePixelRatio.rotate(90.f, 0.0f, 0.0f, 1.0f);
-                m_matrixDevicePixelRatio.translate(
-                        0.f, -m_viewport.width() * m_devicePixelRatio, 0.f);
-            }
-            m_matricesDirty = false;
-        }
         return applyDevicePixelRatio ? m_matrixDevicePixelRatio : m_matrix;
     }
 
@@ -259,7 +243,8 @@ class WaveformWidgetRenderer {
     int m_dimBrightThreshold;
     int m_height;
     int m_width;
-    bool m_matricesDirty;
+    bool m_matrixNeedUpdate;
+    bool m_matrixChanged;
     QRectF m_rect;
     QSize m_viewport;
     QMatrix4x4 m_matrix;
