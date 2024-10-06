@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QMatrix4x4>
+
 #include "track/track_decl.h"
 #include "util/class.h"
 #include "waveform/renderers/waveformmark.h"
@@ -141,8 +143,30 @@ class WaveformWidgetRenderer {
         return m_alphaBeatGrid;
     }
 
-    virtual void resizeRenderer(int width, int height, float devicePixelRatio);
-
+    void setDevicePixelRatio(float devicePixelRatio) {
+        if (m_devicePixelRatio != devicePixelRatio) {
+            m_devicePixelRatio = devicePixelRatio;
+            m_matricesDirty = true;
+        }
+    }
+    void setViewport(const QSize& viewport) {
+        if (m_viewport != viewport) {
+            m_viewport = viewport;
+            m_matricesDirty = true;
+        }
+    }
+    void setRect(const QRectF& rect) {
+        if (m_rect != rect) {
+            m_rect = rect;
+            m_matricesDirty = true;
+        }
+    }
+    const QSize getViewport() const {
+        return m_viewport;
+    }
+    const QRectF getRect() const {
+        return m_rect;
+    }
     int getHeight() const {
         return m_height;
     }
@@ -201,6 +225,32 @@ class WaveformWidgetRenderer {
         return m_trackSamples <= 0.0 || m_pos[::WaveformRendererAbstract::Play] == -1;
     }
 
+    const QMatrix4x4& getMatrix(bool applyDevicePixelRatio) {
+        if (m_matricesDirty) {
+            m_matrix = QMatrix4x4();
+            m_matrix.ortho(QRectF(0.0f,
+                    0.0f,
+                    m_viewport.width(),
+                    m_viewport.height()));
+            if (getOrientation() == Qt::Vertical) {
+                m_matrix.rotate(90.f, 0.0f, 0.0f, 1.0f);
+                m_matrix.translate(0.f, -m_viewport.width(), 0.f);
+            }
+            m_matrixDevicePixelRatio = QMatrix4x4();
+            m_matrixDevicePixelRatio.ortho(QRectF(0.0f,
+                    0.0f,
+                    m_viewport.width() * m_devicePixelRatio,
+                    m_viewport.height() * m_devicePixelRatio));
+            if (getOrientation() == Qt::Vertical) {
+                m_matrixDevicePixelRatio.rotate(90.f, 0.0f, 0.0f, 1.0f);
+                m_matrixDevicePixelRatio.translate(
+                        0.f, -m_viewport.width() * m_devicePixelRatio, 0.f);
+            }
+            m_matricesDirty = false;
+        }
+        return applyDevicePixelRatio ? m_matrixDevicePixelRatio : m_matrix;
+    }
+
   protected:
     QString m_group;
     TrackPointer m_pTrack;
@@ -209,6 +259,11 @@ class WaveformWidgetRenderer {
     int m_dimBrightThreshold;
     int m_height;
     int m_width;
+    bool m_matricesDirty;
+    QRectF m_rect;
+    QSize m_viewport;
+    QMatrix4x4 m_matrix;
+    QMatrix4x4 m_matrixDevicePixelRatio;
     float m_devicePixelRatio;
     WaveformSignalColors m_colors;
     QColor m_passthroughLabelColor;

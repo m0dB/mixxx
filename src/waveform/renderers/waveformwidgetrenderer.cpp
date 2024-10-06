@@ -27,6 +27,7 @@ WaveformWidgetRenderer::WaveformWidgetRenderer(const QString& group)
           m_dimBrightThreshold(kDefaultDimBrightThreshold),
           m_height(-1),
           m_width(-1),
+          m_matricesDirty(false),
           m_devicePixelRatio(1.0f),
 
           m_trackPixelCount(0.0),
@@ -387,6 +388,7 @@ void WaveformWidgetRenderer::setPassThroughEnabled(bool enabled) {
     }
 }
 
+/*
 void WaveformWidgetRenderer::resizeRenderer(int width, int height, float devicePixelRatio) {
     m_width = width;
     m_height = height;
@@ -396,6 +398,7 @@ void WaveformWidgetRenderer::resizeRenderer(int width, int height, float deviceP
         m_rendererStack[i]->onResize();
     }
 }
+*/
 
 void WaveformWidgetRenderer::setup(
         const QDomNode& node, const SkinContext& context) {
