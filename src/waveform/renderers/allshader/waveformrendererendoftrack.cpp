@@ -7,7 +7,10 @@
 
 #include "control/controlproxy.h"
 #include "rendergraph/geometry.h"
-#include "rendergraph/material/endoftrackmaterial.h"
+#include "rendergraph/material/rgbamaterial.h"
+#include "rendergraph/vertexupdaters/rgbavertexupdater.h"
+#include "util/colorcomponents.h"
+#include "waveform/renderers/allshader/matrixforwidgetgeometry.h"
 #include "waveform/renderers/waveformwidgetrenderer.h"
 #include "waveform/waveformwidgetfactory.h"
 #include "widget/wskincolor.h"
@@ -28,13 +31,8 @@ WaveformRendererEndOfTrack::WaveformRendererEndOfTrack(
           m_pEndOfTrackControl(nullptr),
           m_pTimeRemainingControl(nullptr),
           m_color(color) {
-    setGeometry(std::make_unique<Geometry>(EndOfTrackMaterial::attributes(), 4));
-    setMaterial(std::make_unique<EndOfTrackMaterial>());
+    initForRectangles<RGBAMaterial>(0);
     setUsePreprocess(true);
-
-    geometry().setAttributeValues(0, positionArray, 4);
-    geometry().setAttributeValues(1, horizontalGradientArray, 4);
-    material().setUniform(0, QVector4D{0.f, 0.f, 0.f, 0.f});
 }
 
 void WaveformRendererEndOfTrack::draw(QPainter* painter, QPaintEvent* event) {
@@ -68,7 +66,18 @@ void WaveformRendererEndOfTrack::preprocess() {
                 m_waveformRenderer->getGroup(), "time_remaining");
     }
 
-    const int elapsed = m_timer.elapsed().toIntegerMillis() % kBlinkingPeriodMillis;
+    const int elapsedTotal = m_timer.elapsed().toIntegerMillis();
+    const int elapsed = elapsedTotal % kBlinkingPeriodMillis;
+
+    if (elapsedTotal >= m_lastFrameCountLogged + 1000) {
+        if (elapsedTotal >= m_lastFrameCountLogged + 2000) {
+            m_lastFrameCountLogged = elapsedTotal;
+        }
+        m_lastFrameCountLogged += 1000;
+        qDebug() << m_frameCount;
+        m_frameCount = 0;
+    }
+    m_frameCount++;
 
     const double blinkIntensity = (double)(2 * abs(elapsed - kBlinkingPeriodMillis / 2)) /
             kBlinkingPeriodMillis;
@@ -76,22 +85,49 @@ void WaveformRendererEndOfTrack::preprocess() {
     const double remainingTime = m_pTimeRemainingControl->get();
     const double remainingTimeTriggerSeconds =
             WaveformWidgetFactory::instance()->getEndOfTrackWarningTime();
-    const double criticalIntensity = (remainingTimeTriggerSeconds - remainingTime) /
-            remainingTimeTriggerSeconds;
+    const double criticalIntensity = static_cast<double>(elapsed) /
+            static_cast<double>(
+                    kBlinkingPeriodMillis); //(remainingTimeTriggerSeconds -
+                                            // remainingTime) /
+                                            // remainingTimeTriggerSeconds;
 
-    const double alpha = criticalIntensity * blinkIntensity;
+    const double alpha = std::max(0.0, std::min(1.0, criticalIntensity * blinkIntensity));
 
     if (alpha != 0.0) {
-        QColor color = m_color;
-        color.setAlphaF(static_cast<float>(alpha));
+        float r, g, b, a;
+        getRgbF(m_color, &r, &g, &b, &a);
 
-        material().setUniform(0, color);
+        const QRectF& rect = m_waveformRenderer->getRect();
+
+        const float posx0 = static_cast<float>(rect.x());
+        const float posx1 = static_cast<float>(rect.x() + rect.width() / 2.0);
+        const float posx2 = static_cast<float>(rect.x() + rect.width());
+        const float posy1 = static_cast<float>(rect.y());
+        const float posy2 = static_cast<float>(rect.y() + rect.height());
+
+        float minAlpha = 0.5f * static_cast<float>(alpha);
+        float maxAlpha = 0.83f * static_cast<float>(alpha);
+
+        geometry().allocate(6 * 2);
+        RGBAVertexUpdater vertexUpdater{geometry().vertexDataAs<Geometry::RGBAColoredPoint2D>()};
+        vertexUpdater.addRectangleHGradient(
+                {posx0, posy1}, {posx1, posy2}, {r, g, b, minAlpha}, {r, g, b, minAlpha});
+        vertexUpdater.addRectangleHGradient(
+                {posx1, posy1}, {posx2, posy2}, {r, g, b, minAlpha}, {r, g, b, maxAlpha});
+
+        QMatrix4x4 matrix = matrixForWidgetGeometry(m_waveformRenderer, false);
+        material().setUniform(0, matrix);
+
+        markDirtyGeometry();
         markDirtyMaterial();
+    } else {
+        geometry().allocate(0);
     }
 }
 
 bool WaveformRendererEndOfTrack::isSubtreeBlocked() const {
-    return !(!m_pEndOfTrackControl || m_pEndOfTrackControl->toBool());
+    return false;
+    // return !(!m_pEndOfTrackControl || m_pEndOfTrackControl->toBool());
 }
 
 } // namespace allshader
