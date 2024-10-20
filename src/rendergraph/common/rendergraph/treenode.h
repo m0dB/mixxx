@@ -11,9 +11,7 @@ class TreeNode;
 
 class rendergraph::TreeNode {
   public:
-    TreeNode(rendergraph::BaseNode* pBackendNode)
-            : m_pBackendNode(pBackendNode) {
-    }
+    TreeNode(rendergraph::BaseNode* pBackendNode);
     virtual ~TreeNode();
 
     void appendChildNode(std::unique_ptr<TreeNode>&& pChild);

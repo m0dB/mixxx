@@ -190,7 +190,7 @@ void allshader::WaveformRenderMark::update() {
     const double playPosition = m_waveformRenderer->getTruePosSample(positionType);
     double nextMarkPosition = std::numeric_limits<double>::max();
 
-    TreeNode* pRangeChild = m_pRangeNodesParent->firstChild();
+    GeometryNode* pRangeChild = static_cast<GeometryNode*>(m_pRangeNodesParent->firstChild());
 
     for (const auto& pMark : std::as_const(m_marks)) {
         if (!pMark->isValid()) {
@@ -262,9 +262,10 @@ void allshader::WaveformRenderMark::update() {
 
                 // Reuse, or create new when needed
                 if (!pRangeChild) {
-                    m_pRangeNodesParent->appendChildNode(std::make_unique<GeometryNode>());
-                    pRangeChild = m_pRangeNodesParent->lastChild();
-                    static_cast<GeometryNode*>(pRangeChild)->initForRectangles<RGBAMaterial>(2);
+                    auto pNode = std::make_unique<GeometryNode>();
+                    pRangeChild = pNode.get();
+                    pRangeChild->initForRectangles<RGBAMaterial>(2);
+                    m_pRangeNodesParent->appendChildNode(std::move(pNode));
                 }
 
                 updateRangeNode(static_cast<GeometryNode*>(pRangeChild),
@@ -274,7 +275,7 @@ void allshader::WaveformRenderMark::update() {
                         color);
 
                 visible = true;
-                pRangeChild = pRangeChild->nextSibling();
+                pRangeChild = static_cast<GeometryNode*>(pRangeChild->nextSibling());
             }
         }
 
@@ -286,11 +287,11 @@ void allshader::WaveformRenderMark::update() {
     }
 
     // Remove unused nodes
-    while (pRangeChild) {
-        auto pNext = static_cast<GeometryNode*>(pRangeChild->nextSibling());
-        m_pRangeNodesParent->removeChildNode(pRangeChild);
-        pRangeChild = pNext;
-    }
+    // while (pRangeChild) {
+    //    auto pNext = static_cast<GeometryNode*>(pRangeChild->nextSibling());
+    //    m_pRangeNodesParent->removeChildNode(pRangeChild);
+    //    pRangeChild = pNext;
+    //}
 
     m_waveformRenderer->setMarkPositions(marksOnScreen);
 

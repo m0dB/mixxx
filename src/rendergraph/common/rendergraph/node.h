@@ -12,6 +12,7 @@ class rendergraph::Node : public rendergraph::BaseNode, public rendergraph::Tree
     using rendergraph::TreeNode::appendChildNode;
     using rendergraph::TreeNode::firstChild;
     using rendergraph::TreeNode::lastChild;
+    using rendergraph::TreeNode::nextSibling;
     using rendergraph::TreeNode::removeChildNode;
     Node();
 };

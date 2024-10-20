@@ -3,11 +3,15 @@
 
 using namespace rendergraph;
 
-void TreeNode::setUsePreprocess(bool value) {
-    backendNode()->setUsePreprocessFlag(value);
+TreeNode::TreeNode(rendergraph::BaseNode* pBackendNode)
+        : m_pBackendNode(pBackendNode) {
 }
 
 TreeNode::~TreeNode() {
+}
+
+void TreeNode::setUsePreprocess(bool value) {
+    backendNode()->setUsePreprocessFlag(value);
 }
 
 void TreeNode::onAppendChildNode(TreeNode* pChild) {

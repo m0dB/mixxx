@@ -12,6 +12,11 @@ class GeometryNode;
 class rendergraph::GeometryNode : public rendergraph::BaseGeometryNode,
                                   public rendergraph::TreeNode {
   public:
+    using rendergraph::TreeNode::appendChildNode;
+    using rendergraph::TreeNode::firstChild;
+    using rendergraph::TreeNode::lastChild;
+    using rendergraph::TreeNode::nextSibling;
+    using rendergraph::TreeNode::removeChildNode;
     GeometryNode();
 
     template<class T_Material>

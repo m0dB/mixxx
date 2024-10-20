@@ -4,11 +4,13 @@
 
 using namespace rendergraph;
 
-Texture::Texture(Context* pContext, const QImage& image) {
+Texture::Texture(Context* pContext, const QImage& image)
+        : m_pTexture{std::unique_ptr<BaseTexture>(pContext->window()
+                          ? pContext->window()->createTextureFromImage(image)
+                          : nullptr)} {
     VERIFY_OR_DEBUG_ASSERT(pContext->window() != nullptr) {
         return;
     }
-    m_pTexture = std::unique_ptr<BaseTexture>(pContext->window()->createTextureFromImage(image));
     DEBUG_ASSERT(!m_pTexture->textureSize().isNull());
 }
 
