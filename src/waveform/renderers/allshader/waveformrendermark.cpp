@@ -287,11 +287,11 @@ void allshader::WaveformRenderMark::update() {
     }
 
     // Remove unused nodes
-    // while (pRangeChild) {
-    //    auto pNext = static_cast<GeometryNode*>(pRangeChild->nextSibling());
-    //    m_pRangeNodesParent->removeChildNode(pRangeChild);
-    //    pRangeChild = pNext;
-    //}
+    while (pRangeChild) {
+        auto pNext = static_cast<GeometryNode*>(pRangeChild->nextSibling());
+        m_pRangeNodesParent->removeChildNode(pRangeChild);
+        pRangeChild = pNext;
+    }
 
     m_waveformRenderer->setMarkPositions(marksOnScreen);
 
