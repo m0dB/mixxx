@@ -28,8 +28,7 @@ class QmlWaveformRendererFactory : public QObject {
         rendergraph::TreeNode* node{nullptr};
     };
 
-    virtual Renderer create(WaveformWidgetRenderer* waveformWidget,
-            rendergraph::Context* pcontext) const = 0;
+    virtual Renderer create(WaveformWidgetRenderer* waveformWidget) const = 0;
 };
 
 class QmlWaveformRendererEndOfTrack
@@ -49,8 +48,7 @@ class QmlWaveformRendererEndOfTrack
         emit colorChanged(m_color);
     }
 
-    Renderer create(WaveformWidgetRenderer* waveformWidget,
-            rendergraph::Context* pcontext) const override;
+    Renderer create(WaveformWidgetRenderer* waveformWidget) const override;
 
   signals:
     void colorChanged(const QColor&);
@@ -76,8 +74,7 @@ class QmlWaveformRendererPreroll
         emit colorChanged(m_color);
     }
 
-    Renderer create(WaveformWidgetRenderer* waveformWidget,
-            rendergraph::Context* pcontext) const override;
+    Renderer create(WaveformWidgetRenderer* waveformWidget) const override;
   signals:
     void colorChanged(const QColor&);
 
@@ -129,8 +126,7 @@ class QmlWaveformRendererRGB
         emit highColorChanged(m_lowColor);
     }
 
-    Renderer create(WaveformWidgetRenderer* waveformWidget,
-            rendergraph::Context* pcontext) const override;
+    Renderer create(WaveformWidgetRenderer* waveformWidget) const override;
   signals:
     void axesColorChanged(const QColor&);
     void lowColorChanged(const QColor&);
@@ -161,8 +157,7 @@ class QmlWaveformRendererBeat
         emit colorChanged(m_color);
     }
 
-    Renderer create(WaveformWidgetRenderer* waveformWidget,
-            rendergraph::Context* pcontext) const override;
+    Renderer create(WaveformWidgetRenderer* waveformWidget) const override;
   signals:
     void colorChanged(const QColor&);
 
@@ -364,8 +359,7 @@ class QmlWaveformRendererMarkRange
         return {this, &m_ranges};
     }
 
-    Renderer create(WaveformWidgetRenderer* waveformWidget,
-            rendergraph::Context* pcontext) const override;
+    Renderer create(WaveformWidgetRenderer* waveformWidget) const override;
 
   private:
     QList<QmlWaveformMarkRange*> m_ranges;
@@ -379,8 +373,7 @@ class QmlWaveformRendererMarkRange
 //   public:
 //     QmlWaveformRendererSlipMode();
 
-//     Renderer create(WaveformWidgetRenderer* waveformWidget,
-//             rendergraph::Context* pcontext) const override;
+//     Renderer create(WaveformWidgetRenderer* waveformWidget) const override;
 // };
 
 // class QmlWaveformRendererStem
@@ -392,11 +385,9 @@ class QmlWaveformRendererMarkRange
 //     QmlWaveformRendererStem();
 
 // #ifdef __STEM__
-//     Renderer create(WaveformWidgetRenderer* waveformWidget,
-//             rendergraph::Context* pcontext) const override;
+//     Renderer create(WaveformWidgetRenderer* waveformWidget) const override;
 // #else
-//     Renderer create(WaveformWidgetRenderer* waveformWidget,
-//             rendergraph::Context* pcontext) const override {
+//     Renderer create(WaveformWidgetRenderer* waveformWidget) const override {
 //               return Renderer{};
 //             }
 
@@ -437,8 +428,7 @@ class QmlWaveformRendererMark
         m_playMarkerBackground = playMarkerBackground;
     }
 
-    Renderer create(WaveformWidgetRenderer* waveformWidget,
-            rendergraph::Context* pcontext) const override;
+    Renderer create(WaveformWidgetRenderer* waveformWidget) const override;
 
     QQmlListProperty<QmlWaveformMark> marks() {
         return {this, &m_marks};

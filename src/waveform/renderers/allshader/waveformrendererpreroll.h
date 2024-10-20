@@ -24,17 +24,8 @@ class allshader::WaveformRendererPreroll final
     explicit WaveformRendererPreroll(
             WaveformWidgetRenderer* waveformWidget,
             ::WaveformRendererAbstract::PositionSource type =
-                    ::WaveformRendererAbstract::Play);
-    explicit WaveformRendererPreroll(
-            WaveformWidgetRenderer* waveformWidget,
-            rendergraph::Context* pContext,
-            QColor color,
-            ::WaveformRendererAbstract::PositionSource type =
-                    ::WaveformRendererAbstract::Play)
-            : WaveformRendererPreroll(waveformWidget, type) {
-        m_pContext = pContext;
-        m_color = color;
-    }
+                    ::WaveformRendererAbstract::Play,
+                QColor color = QColor(200, 25, 20));
     ~WaveformRendererPreroll() override;
 
     // Pure virtual from WaveformRendererAbstract, not used
@@ -47,7 +38,6 @@ class allshader::WaveformRendererPreroll final
 
   private:
     QColor m_color;
-    rendergraph::Context* m_pContext;
     float m_markerBreadth{};
     float m_markerLength{};
     bool m_isSlipRenderer;

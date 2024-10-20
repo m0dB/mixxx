@@ -44,15 +44,13 @@ QmlWaveformDisplay::QmlWaveformDisplay(QQuickItem* parent)
         : QQuickItem(parent),
           WaveformWidgetRenderer("[Channel1]"),
           m_pPlayer(nullptr),
-          m_pWaveformRenderMark(nullptr),
-          m_pWaveformRenderMarkRange(nullptr),
           m_pZoom(std::make_unique<ControlProxy>(getGroup(),
                   "waveform_zoom",
                   this,
                   ControlFlag::NoAssertIfMissing)) {
     setFlag(QQuickItem::ItemHasContents, true);
 
-    connect(this, &QmlWaveformDisplay::windowChanged, this, &QmlWaveformDisplay::slotWindowChanged);
+    connect(this, &QmlWaveformDisplay::windowChanged, this, &QmlWaveformDisplay::slotWindowChanged, Qt::DirectConnection);
     m_pZoom->connectValueChanged(this, [this](double zoom) {
         setZoom(zoom);
     });
@@ -71,6 +69,9 @@ void QmlWaveformDisplay::componentComplete() {
 
 void QmlWaveformDisplay::slotWindowChanged(QQuickWindow* window) {
     qDebug() << "WINDOWS CHANGED!!";
+
+    m_rendererStack.clear();
+
     m_dirtyFlag |= DirtyFlag::Window;
     connect(window, &QQuickWindow::frameSwapped, this, &QmlWaveformDisplay::slotFrameSwapped);
     m_timer.restart();
@@ -148,43 +149,30 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
 
     if (!bgNode || m_dirtyFlag.testFlag(DirtyFlag::Window)) {
         if (bgNode) {
-            m_pWaveformRenderMark = nullptr;
-            m_pWaveformRenderMarkRange = nullptr;
             delete bgNode;
             m_dirtyFlag.setFlag(DirtyFlag::Window, false);
         }
         bgNode = new QSGSimpleRectNode();
         bgNode->setRect(boundingRect());
 
-        rendergraph::Context context(window());
-        auto pTopNode = std::make_unique<rendergraph::Node>();
+        if (getContext()){
+            delete getContext();
+        }
+        setContext(new rendergraph::Context(window()));
+        m_pTopNode = new rendergraph::Node;
         // auto pOpacityNode = std::make_unique<rendergraph::OpacityNode>();
 
         m_rendererStack.clear();
         for (auto* pQmlRenderer : m_waveformRenderers) {
-            auto renderer = pQmlRenderer->create(this, &context);
+
+            auto renderer = pQmlRenderer->create(this);
             addRenderer(renderer.renderer);
             // appendChildTo(pOpacityNode, renderer.node);
-            pTopNode->appendChildNode(std::unique_ptr<rendergraph::TreeNode>(renderer.node));
-
-            auto* pWaveformRenderMark = dynamic_cast<allshader::WaveformRenderMark*>(renderer.node);
-            if (pWaveformRenderMark != nullptr) {
-                DEBUG_ASSERT(m_pWaveformRenderMark == nullptr);
-                m_pWaveformRenderMark = pWaveformRenderMark;
-                continue;
-            }
-
-            auto* pWaveformRenderMarkRange =
-                    dynamic_cast<allshader::WaveformRenderMarkRange*>(
-                            renderer.node);
-            if (pWaveformRenderMarkRange != nullptr) {
-                DEBUG_ASSERT(m_pWaveformRenderMarkRange == nullptr);
-                m_pWaveformRenderMarkRange = pWaveformRenderMarkRange;
-            }
+            m_pTopNode->appendChildNode(std::unique_ptr<rendergraph::TreeNode>(renderer.node));
         }
 
         // pTopNode->appendChildNode(std::move(pOpacityNode));
-        bgNode->appendChildNode(pTopNode->backendNode());
+        bgNode->appendChildNode(m_pTopNode->backendNode());
 
         bgNode->setColor(QColor(0, 0, 0, 255));
         init();
@@ -192,12 +180,6 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
 
     if (m_dirtyFlag.testFlag(DirtyFlag::Geometry)) {
         m_dirtyFlag.setFlag(DirtyFlag::Geometry, false);
-        qDebug() << "RECT" << boundingRect();
-        qDebug() << "RECT" << childrenRect();
-        qDebug() << "RECT" << clipRect();
-        // qDebug() << "RECT" << mapToGlobal(QPointF(0, 0));
-        // qDebug() << "RECT" << window()->mapToGlobal(QPointF(0, 0)));
-        qDebug() << "RECT" << window()->size();
         bgNode->setRect(boundingRect());
 
         auto rect = QRectF(boundingRect().x() +
@@ -206,13 +188,6 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
                 2.0,
                 boundingRect().height());
     }
-
-    // if (m_pWaveformRenderMark != nullptr) {
-    //     m_pWaveformRenderMark->update();
-    // }
-    // if (m_pWaveformRenderMarkRange != nullptr) {
-    //     m_pWaveformRenderMarkRange->update();
-    // }
     onPreRender(this);
     bgNode->markDirty(QSGNode::DirtyForceUpdate);
 

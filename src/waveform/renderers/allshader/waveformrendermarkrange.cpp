@@ -12,7 +12,8 @@ using namespace rendergraph;
 namespace allshader {
 
 WaveformRenderMarkRange::WaveformRenderMarkRange(WaveformWidgetRenderer* waveformWidget)
-        : ::WaveformRendererAbstract(waveformWidget) {
+        : ::WaveformRendererAbstract(waveformWidget) {    
+    setUsePreprocess(true);
 }
 
 void WaveformRenderMarkRange::setup(const QDomNode& node, const SkinContext& skinContext) {

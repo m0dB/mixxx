@@ -64,9 +64,10 @@ namespace allshader {
 
 WaveformRendererPreroll::WaveformRendererPreroll(
         WaveformWidgetRenderer* waveformWidget,
-        ::WaveformRendererAbstract::PositionSource type)
+        ::WaveformRendererAbstract::PositionSource type,
+        QColor color)
         : ::WaveformRendererAbstract(waveformWidget),
-          m_color(QColor(200, 25, 20)),
+          m_color(color),
           m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip) {
     setGeometry(std::make_unique<Geometry>(PatternMaterial::attributes(), 0));
     setMaterial(std::make_unique<PatternMaterial>());

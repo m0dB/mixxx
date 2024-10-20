@@ -6,6 +6,11 @@ void TreeNode::setUsePreprocess(bool value) {
     backendNode()->setFlag(QSGNode::UsePreprocess, value);
 }
 
+TreeNode::~TreeNode() {
+    m_pFirstChild.release();
+    m_pNextSibling.release();
+}
+
 void TreeNode::onAppendChildNode(TreeNode* pChild) {
     backendNode()->appendChildNode(pChild->backendNode());
 }

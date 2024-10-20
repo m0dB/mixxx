@@ -27,38 +27,38 @@ Item {
             color: 'red'
         }
 
-        // // Mixxx.WaveformRendererMarkRange {
-        // //     // <!-- Loop -->
-        // //     Mixxx.WaveformMarkRange {
-        // //         startControl: "loop_start_position"
-        // //         endControl: "loop_end_position"
-        // //         enabledControl: "loop_enabled"
-        // //         color: 'LoopColor'
-        // //         opacity: 0.7
-        // //         disabledColor: '#FFFFFF'
-        // //         disabledOpacity: 0.6
-        // //     }
-        // //     // <!-- Intro -->
-        // //     Mixxx.WaveformMarkRange {
-        // //         startControl: "intro_start_position"
-        // //         endControl: "intro_end_position"
-        // //         //   visibilityControl: '[Skin],show_intro_outro_cues'
-        // //         color: 'IntroOutroColor'
-        // //         opacity: 0.6
-        // //         durationTextColor: '#ffffff'
-        // //         durationTextLocation: 'after'
-        // //     }
-        // //     // <!-- Outro -->
-        // //     Mixxx.WaveformMarkRange {
-        // //         startControl: "outro_start_position"
-        // //         endControl: "outro_end_position"
-        // //         //   visibilityControl: '[Skin],show_intro_outro_cues'
-        // //         color: 'IntroOutroColor'
-        // //         opacity: 0.6
-        // //         durationTextColor: '#ffffff'
-        // //         durationTextLocation: 'before'
-        // //     }
-        // // }
+        Mixxx.WaveformRendererMarkRange {
+            // // <!-- Loop -->
+            Mixxx.WaveformMarkRange {
+                startControl: "loop_start_position"
+                endControl: "loop_end_position"
+                enabledControl: "loop_enabled"
+                color: 'LoopColor'
+                opacity: 0.7
+                disabledColor: '#FFFFFF'
+                disabledOpacity: 0.6
+            }
+            // // <!-- Intro -->
+            // Mixxx.WaveformMarkRange {
+            //     startControl: "intro_start_position"
+            //     endControl: "intro_end_position"
+            //     //   visibilityControl: '[Skin],show_intro_outro_cues'
+            //     color: 'IntroOutroColor'
+            //     opacity: 0.6
+            //     durationTextColor: '#ffffff'
+            //     durationTextLocation: 'after'
+            // }
+            // // <!-- Outro -->
+            // Mixxx.WaveformMarkRange {
+            //     startControl: "outro_start_position"
+            //     endControl: "outro_end_position"
+            //     //   visibilityControl: '[Skin],show_intro_outro_cues'
+            //     color: 'IntroOutroColor'
+            //     opacity: 0.6
+            //     durationTextColor: '#ffffff'
+            //     durationTextLocation: 'before'
+            // }
+        }
 
         Mixxx.WaveformRendererRGB {
             axesColor: 'yellow'
@@ -89,7 +89,7 @@ Item {
             }
             Mixxx.WaveformMark {
                 control: "loop_start_position"
-                text: '&#8635;'
+                text: '↻;'
                 align: 'top|left'
                 color: 'green'
                 textColor: '#FFFFFF'
@@ -113,7 +113,7 @@ Item {
             Mixxx.WaveformMark {
                 control: "intro_end_position"
                 //   visibilityControl: '[Skin],show_intro_outro_cues'
-                text: '&#9698;'
+                text: '◢'
                 align: 'top|left'
                 color: 'blue'
                 textColor: '#FFFFFF'
@@ -121,7 +121,7 @@ Item {
             Mixxx.WaveformMark {
                 control: "outro_start_position"
                 //   visibilityControl: '[Skin],show_intro_outro_cues'
-                text: '&#9699;'
+                text: '◣'
                 align: 'top|right'
                 color: 'blue'
                 textColor: '#FFFFFF'
