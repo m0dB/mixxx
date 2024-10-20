@@ -96,6 +96,9 @@ class QmlWaveformDisplay : public QQuickItem, ISyncTimeProvider, public Waveform
     DirtyFlags m_dirtyFlag{DirtyFlag::None};
     QList<QmlWaveformRendererFactory*> m_waveformRenderers;
 
+    allshader::WaveformRenderMark* m_waveformRenderMark;
+    allshader::WaveformRenderMarkRange* m_waveformRenderMarkRange;
+
     // Owned by the QML scene?
     rendergraph::Node* m_pTopNode;
 

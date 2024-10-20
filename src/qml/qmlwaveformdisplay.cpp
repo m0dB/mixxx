@@ -169,6 +169,18 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
             addRenderer(renderer.renderer);
             // appendChildTo(pOpacityNode, renderer.node);
             m_pTopNode->appendChildNode(std::unique_ptr<rendergraph::TreeNode>(renderer.node));
+            auto waveformRenderMark =
+                    dynamic_cast<allshader::WaveformRenderMark*>(
+                            renderer.renderer);
+            if (waveformRenderMark) {
+                m_waveformRenderMark = waveformRenderMark;
+            }
+            auto waveformRenderMarkRange =
+                    dynamic_cast<allshader::WaveformRenderMarkRange*>(
+                            renderer.renderer);
+            if (waveformRenderMarkRange) {
+                m_waveformRenderMarkRange = waveformRenderMarkRange;
+            }
         }
 
         // pTopNode->appendChildNode(std::move(pOpacityNode));
@@ -188,6 +200,10 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
                 2.0,
                 boundingRect().height());
     }
+
+    m_waveformRenderMark->update();
+    m_waveformRenderMarkRange->update();
+
     onPreRender(this);
     bgNode->markDirty(QSGNode::DirtyForceUpdate);
 
