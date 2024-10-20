@@ -13,9 +13,6 @@ class SkinContext;
 namespace allshader {
 class WaveformRendererPreroll;
 }
-namespace rendergraph {
-class Context;
-}
 
 class allshader::WaveformRendererPreroll final
         : public ::WaveformRendererAbstract,

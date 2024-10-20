@@ -1,7 +1,5 @@
 #include "waveform/renderers/allshader/waveformrendererrgb.h"
 
-#include <QSGNode>
-
 #include "rendergraph/material/rgbmaterial.h"
 #include "rendergraph/vertexupdaters/rgbvertexupdater.h"
 #include "track/track.h"

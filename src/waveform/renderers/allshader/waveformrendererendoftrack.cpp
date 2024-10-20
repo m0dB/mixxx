@@ -1,7 +1,6 @@
 #include "waveform/renderers/allshader/waveformrendererendoftrack.h"
 
 #include <QDomNode>
-#include <QSGNode>
 #include <QVector4D>
 #include <memory>
 
@@ -96,8 +95,6 @@ void WaveformRendererEndOfTrack::preprocess() {
                                             //  remainingTimeTriggerSeconds;
 
     const double alpha = std::max(0.0, std::min(1.0, criticalIntensity * blinkIntensity));
-
-    bool forceSetUniformMatrix = false;
 
     if (alpha != 0.0) {
         QSizeF size(m_waveformRenderer->getWidth(), m_waveformRenderer->getHeight());

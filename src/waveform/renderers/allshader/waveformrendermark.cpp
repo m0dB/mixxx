@@ -43,7 +43,7 @@ allshader::WaveformMarkNodeGraphics::WaveformMarkNodeGraphics(WaveformMark* pOwn
         rendergraph::Context* pContext,
         const QImage& image)
         : m_pNode(std::make_unique<WaveformMarkNode>(
-                    pOwner, pContext, image)), m_pContext(pContext) {
+                  pOwner, pContext, image)) {
 }
 
 // Both allshader::WaveformRenderMark and the non-GL ::WaveformRenderMark derive
@@ -101,8 +101,6 @@ allshader::WaveformRenderMark::WaveformRenderMark(
     appendChildNode(std::make_unique<GeometryNode>());
     m_pPlayPosNode = static_cast<GeometryNode*>(lastChild());
     m_pPlayPosNode->initForRectangles<TextureMaterial>(1);
-    
-    setUsePreprocess(true);
 }
 
 void allshader::WaveformRenderMark::draw(QPainter* painter, QPaintEvent* event) {

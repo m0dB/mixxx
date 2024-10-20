@@ -31,11 +31,6 @@ class allshader::WaveformRenderMarkRange final : public ::WaveformRendererAbstra
         m_markRanges.push_back(std::move(range));
     }
 
-    // Virtual for rendergraph::Node
-    void preprocess() override {
-      update();
-    }
-
     // Pure virtual from WaveformRendererAbstract, not used
     void draw(QPainter* painter, QPaintEvent* event) override final;
 

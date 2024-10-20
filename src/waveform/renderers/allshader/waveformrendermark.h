@@ -39,11 +39,6 @@ class allshader::WaveformRenderMark : public ::WaveformRenderMarkBase,
 
     void update();
 
-    // Virtual for rendergraph::Node
-    void preprocess() override {
-      update();
-    }
-
     bool isSubtreeBlocked() const override;
 
   private:
@@ -146,7 +141,6 @@ class allshader::WaveformMarkNodeGraphics : public WaveformMark::Graphics {
     WaveformMarkNode* waveformMarkNode() const {
         return static_cast<WaveformMarkNode*>(m_pNode.get());
     }
-    rendergraph::Context* m_pContext;
 
     std::unique_ptr<rendergraph::TreeNode> m_pNode;
 };
