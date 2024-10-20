@@ -34,7 +34,7 @@ class WaveformWidgetRenderer {
     };
 
   public:
-    explicit WaveformWidgetRenderer(const QString& group);
+    explicit WaveformWidgetRenderer(const QString& group = {});
     virtual ~WaveformWidgetRenderer();
 
     bool init();
@@ -120,7 +120,7 @@ class WaveformWidgetRenderer {
     int getTotalVSample() const {
         return m_totalVSamples;
     }
-    double getZoomFactor() const {
+    double getZoom() const {
         return m_zoomFactor;
     }
     double getGain(bool applyCompensation) const {

@@ -1,6 +1,8 @@
 #include "qml/qmlwaveformrenderer.h"
+#include <memory>
 
 #include "moc_qmlwaveformrenderer.cpp"
+#include "util/assert.h"
 #include "waveform/renderers/allshader/waveformrenderbeat.h"
 #include "waveform/renderers/allshader/waveformrendererendoftrack.h"
 #include "waveform/renderers/allshader/waveformrendererpreroll.h"
@@ -36,7 +38,7 @@ QmlWaveformRendererMarkRange::QmlWaveformRendererMarkRange() {
 // }
 
 QmlWaveformRendererMark::QmlWaveformRendererMark()
-        : m_defaultMark(nullptr) {
+        : m_defaultMark(nullptr), m_untilMark(std::make_unique<QmlWaveformUntilMark>()) {
 }
 
 QmlWaveformRendererFactory::Renderer QmlWaveformRendererEndOfTrack::create(
@@ -109,9 +111,16 @@ QmlWaveformRendererFactory::Renderer QmlWaveformRendererMarkRange::create(
 
 QmlWaveformRendererFactory::Renderer QmlWaveformRendererMark::create(
         WaveformWidgetRenderer* waveformWidget) const {
+    VERIFY_OR_DEBUG_ASSERT(!!m_untilMark){
+        return QmlWaveformRendererFactory::Renderer{};
+    }
     auto* renderer = new WaveformRenderMark(waveformWidget,
             m_playMarkerColor,
             m_playMarkerBackground,
+            m_untilMark->showTime(),
+            m_untilMark->showBeats(),
+            static_cast<Qt::Alignment>(m_untilMark->align()),
+            m_untilMark->textSize(),
             ::WaveformRendererAbstract::Play);
     int priority = 0;
     for (auto* pMark : m_marks) {

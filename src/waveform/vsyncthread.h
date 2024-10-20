@@ -34,18 +34,17 @@ class VSyncThread : public QThread, public ISyncTimeProvider {
     void setSyncIntervalTimeMicros(int usSyncTimer);
     int droppedFrames();
     void setSwapWait(int sw);
-
     // ISyncTimerProvider
     int fromTimerToNextSyncMicros(const PerformanceTimer& timer) override;
-    int getSyncIntervalTimeMicros() const override {
-        return m_syncIntervalTimeMicros;
-    }
-
     void vsyncSlotFinished();
     void getAvailableVSyncTypes(QList<QPair<int, QString>>* list);
     void setupSync(WGLWidget* glw, int index);
     void waitUntilSwap(WGLWidget* glw);
     mixxx::Duration sinceLastSwap() const;
+    // ISyncTimerProvider
+    int getSyncIntervalTimeMicros() const override {
+        return m_syncIntervalTimeMicros;
+    }
     void updatePLL();
     bool pllInitializing() const;
     VSyncMode vsyncMode() const {

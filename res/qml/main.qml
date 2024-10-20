@@ -98,7 +98,7 @@ ApplicationWindow {
             }
         }
 
-        WaveformRow {
+        Skin.WaveformDisplay {
             id: deck3waveform
 
             group: "[Channel3]"
@@ -111,48 +111,33 @@ ApplicationWindow {
             }
         }
 
-        // WaveformRow {
-        //     id: deck1waveform
-
-        //     group: "[Channel1]"
-        //     width: root.width
-        //     height: 60
-        //     visible: !root.maximizeLibrary
-
-        //     FadeBehavior on visible {
-        //         fadeTarget: deck1waveform
-        //     }
-        // }
-
         Skin.WaveformDisplay {
             id: deck1waveform
 
+            group: "[Channel1]"
             width: root.width
             height: 60
-            group: "[Channel1]"
+            visible: !root.maximizeLibrary
+
+            FadeBehavior on visible {
+                fadeTarget: deck1waveform
+            }
         }
 
         Skin.WaveformDisplay {
             id: deck2waveform
 
+            group: "[Channel2]"
             width: root.width
             height: 60
-            group: "[Channel2]"
+            visible: !root.maximizeLibrary
+
+            FadeBehavior on visible {
+                fadeTarget: deck2waveform
+            }
         }
 
-//        WaveformRow {
-//            id: deck2waveform
-//
-//            group: "[Channel2]"
-//            width: root.width
-//            height: 60
-//            visible: !root.maximizeLibrary
-//
-//            FadeBehavior on visible {
-//                fadeTarget: deck2waveform
-//            }
-//        }
-        WaveformRow {
+        Skin.WaveformDisplay {
             id: deck4waveform
 
             group: "[Channel4]"

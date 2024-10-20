@@ -1,13 +1,16 @@
 #pragma once
 
+#include <QQmlEngine>
 #include <QObject>
 
-#include "rendergraph/context.h"
-#include "rendergraph/treenode.h"
 #include "waveform/renderers/waveformrendererabstract.h"
 #include "waveform/renderers/waveformwidgetrenderer.h"
 
 class WaveformWidgetRenderer;
+
+namespace rendergraph {
+class TreeNode;
+} // namespace rendergraph
 
 namespace allshaders {
 class WaveformRendererEndOfTrack;
@@ -167,11 +170,11 @@ class QmlWaveformRendererBeat
 
 class QmlWaveformMarkRange : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QString color READ color WRITE setColor)
-    Q_PROPERTY(QString disabledColor READ disabledColor WRITE setDisabledColor)
+    Q_PROPERTY(QColor color READ color WRITE setColor)
+    Q_PROPERTY(QColor disabledColor READ disabledColor WRITE setDisabledColor)
     Q_PROPERTY(double opacity READ opacity WRITE setOpacity)
     Q_PROPERTY(double disabledOpacity READ disabledOpacity WRITE setDisabledOpacity)
-    Q_PROPERTY(QString durationTextColor READ durationTextColor WRITE setDurationTextColor)
+    Q_PROPERTY(QColor durationTextColor READ durationTextColor WRITE setDurationTextColor)
     Q_PROPERTY(QString startControl READ startControl WRITE setStartControl)
     Q_PROPERTY(QString endControl READ endControl WRITE setEndControl)
     Q_PROPERTY(QString enabledControl READ enabledControl WRITE setEnabledControl)
@@ -180,19 +183,19 @@ class QmlWaveformMarkRange : public QObject {
     QML_NAMED_ELEMENT(WaveformMarkRange)
 
   public:
-    QString color() const {
+    QColor color() const {
         return m_color;
     }
 
-    void setColor(const QString& value) {
+    void setColor(const QColor& value) {
         m_color = value;
     }
 
-    QString disabledColor() const {
+    QColor disabledColor() const {
         return m_disabledColor;
     }
 
-    void setDisabledColor(const QString& value) {
+    void setDisabledColor(const QColor& value) {
         m_disabledColor = value;
     }
 
@@ -212,11 +215,11 @@ class QmlWaveformMarkRange : public QObject {
         m_disabledOpacity = value;
     }
 
-    QString durationTextColor() const {
+    QColor durationTextColor() const {
         return m_durationTextColor;
     }
 
-    void setDurationTextColor(const QString& value) {
+    void setDurationTextColor(const QColor& value) {
         m_durationTextColor = value;
     }
 
@@ -263,9 +266,9 @@ class QmlWaveformMarkRange : public QObject {
   private:
     double m_opacity{0.5};
     double m_disabledOpacity{0.5};
-    QString m_color;
-    QString m_disabledColor;
-    QString m_durationTextColor;
+    QColor m_color;
+    QColor m_disabledColor;
+    QColor m_durationTextColor;
     QString m_startControl;
     QString m_endControl;
     QString m_enabledControl;
@@ -345,6 +348,52 @@ class QmlWaveformMark : public QObject {
     QString m_icon;
 };
 
+class QmlWaveformUntilMark : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(bool showTime READ showTime WRITE setShowTime)
+    Q_PROPERTY(bool showBeats READ showBeats WRITE setShowBeats)
+    Q_PROPERTY(HAlignment align READ align WRITE setAlign)
+    Q_PROPERTY(int textSize READ textSize WRITE setTextSize)
+    
+    QML_NAMED_ELEMENT(WaveformUntilMark)
+  public:
+    enum HAlignment { AlignTop = Qt::AlignTop,
+                       AlignCenter = Qt::AlignCenter,
+                       AlignBottom = Qt::AlignBottom };
+    Q_ENUM(HAlignment)
+
+    bool showTime() const {
+        return m_showTime;
+    }
+    void setShowTime(bool showTime) {
+        m_showTime = showTime;
+    }
+    bool showBeats() const {
+        return m_showBeats;
+    }
+    void setShowBeats(bool showBeats) {
+        m_showBeats = showBeats;
+    }
+    HAlignment align() const {
+        return m_align;
+    }
+    void setAlign(HAlignment align) {
+        m_align = align;
+    }
+    int textSize() const {
+        return m_textSize;
+    }
+    void setTextSize(int textSize) {
+        m_textSize = textSize;
+    }
+
+  private:
+    bool m_showTime;
+    bool m_showBeats;
+    HAlignment m_align;
+    int m_textSize;
+};
+
 class QmlWaveformRendererMarkRange
         : public QmlWaveformRendererFactory {
     Q_OBJECT
@@ -401,6 +450,7 @@ class QmlWaveformRendererMark
     Q_PROPERTY(QColor playMarkerColor READ playMarkerColor WRITE setPlayMarkerColor)
     Q_PROPERTY(QColor playMarkerBackground READ playMarkerBackground WRITE setPlayMarkerBackground)
     Q_PROPERTY(QmlWaveformMark* defaultMark READ defaultMark WRITE setDefaultMark)
+    Q_PROPERTY(QmlWaveformUntilMark* untilMark READ untilMark FINAL)
     Q_CLASSINFO("DefaultProperty", "marks")
     QML_NAMED_ELEMENT(WaveformRendererMark)
 
@@ -409,6 +459,10 @@ class QmlWaveformRendererMark
 
     QmlWaveformMark* defaultMark() const {
         return m_defaultMark;
+    }
+
+    QmlWaveformUntilMark* untilMark() const {
+        return m_untilMark.get();
     }
     void setDefaultMark(QmlWaveformMark* defaultMark) {
         m_defaultMark = defaultMark;
@@ -439,6 +493,7 @@ class QmlWaveformRendererMark
     QColor m_playMarkerBackground;
     QList<QmlWaveformMark*> m_marks;
     QmlWaveformMark* m_defaultMark;
+    std::unique_ptr<QmlWaveformUntilMark> m_untilMark;
 };
 
 } // namespace qml

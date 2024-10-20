@@ -5,6 +5,7 @@
 
 #include "control/controlproxy.h"
 #include "track/track.h"
+#include "util/assert.h"
 #include "util/math.h"
 #include "waveform/isynctimeprovider.h"
 #include "waveform/renderers/waveformrendererabstract.h"
@@ -99,6 +100,10 @@ bool WaveformWidgetRenderer::init() {
         m_posVSample[type] = 0.0;
         m_pos[type] = -1.0; // disable renderers
         m_truePosSample[type] = -1.0;
+    }
+
+    VERIFY_OR_DEBUG_ASSERT(!m_group.isEmpty()){
+        return false;
     }
 
     m_visualPlayPosition = VisualPlayPosition::getVisualPlayPosition(m_group);

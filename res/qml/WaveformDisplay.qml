@@ -18,6 +18,8 @@ Item {
     MixxxControls.WaveformDisplay {
         anchors.fill: parent
         group: root.group
+        zoom: zoomControl.value
+        backgroundColor: "#5e000000"
 
         Mixxx.WaveformRendererEndOfTrack {
             color: 'blue'
@@ -28,36 +30,34 @@ Item {
         }
 
         Mixxx.WaveformRendererMarkRange {
-            // // <!-- Loop -->
+            // <!-- Loop -->
             Mixxx.WaveformMarkRange {
                 startControl: "loop_start_position"
                 endControl: "loop_end_position"
                 enabledControl: "loop_enabled"
-                color: 'LoopColor'
+                color: '#00b400'
                 opacity: 0.7
                 disabledColor: '#FFFFFF'
                 disabledOpacity: 0.6
             }
-            // // <!-- Intro -->
-            // Mixxx.WaveformMarkRange {
-            //     startControl: "intro_start_position"
-            //     endControl: "intro_end_position"
-            //     //   visibilityControl: '[Skin],show_intro_outro_cues'
-            //     color: 'IntroOutroColor'
-            //     opacity: 0.6
-            //     durationTextColor: '#ffffff'
-            //     durationTextLocation: 'after'
-            // }
-            // // <!-- Outro -->
-            // Mixxx.WaveformMarkRange {
-            //     startControl: "outro_start_position"
-            //     endControl: "outro_end_position"
-            //     //   visibilityControl: '[Skin],show_intro_outro_cues'
-            //     color: 'IntroOutroColor'
-            //     opacity: 0.6
-            //     durationTextColor: '#ffffff'
-            //     durationTextLocation: 'before'
-            // }
+            // <!-- Intro -->
+            Mixxx.WaveformMarkRange {
+                startControl: "intro_start_position"
+                endControl: "intro_end_position"
+                color: '#2c5c9a'
+                opacity: 0.6
+                durationTextColor: '#ffffff'
+                durationTextLocation: 'after'
+            }
+            // <!-- Outro -->
+            Mixxx.WaveformMarkRange {
+                startControl: "outro_start_position"
+                endControl: "outro_end_position"
+                color: '#2c5c9a'
+                opacity: 0.6
+                durationTextColor: '#ffffff'
+                durationTextLocation: 'before'
+            }
         }
 
         Mixxx.WaveformRendererRGB {
@@ -80,6 +80,12 @@ Item {
                 textColor: "#FFFFFF"
                 text: " %1 "
             }
+
+            untilMark.showTime: true
+            untilMark.showBeats: true
+            untilMark.align: WaveformUntilMark.AlignTop
+            untilMark.textSize: 20
+
             Mixxx.WaveformMark {
                 control: "cue_point"
                 text: 'C'
@@ -89,30 +95,25 @@ Item {
             }
             Mixxx.WaveformMark {
                 control: "loop_start_position"
-                text: '↻;'
+                text: '↻'
                 align: 'top|left'
                 color: 'green'
                 textColor: '#FFFFFF'
             }
             Mixxx.WaveformMark {
                 control: "loop_end_position"
-                //   visibilityControl: '<Variable name="'
-                //   <!--Text>OUT</Text-->
                 align: 'bottom|right'
                 color: 'green'
                 textColor: '#FFFFFF'
-                //   visibilityControl: '<Variable name="'
             }
             Mixxx.WaveformMark {
                 control: "intro_start_position"
-                //   visibilityControl: '[Skin],show_intro_outro_cues'
                 align: 'top|right'
                 color: 'blue'
                 textColor: '#FFFFFF'
             }
             Mixxx.WaveformMark {
                 control: "intro_end_position"
-                //   visibilityControl: '[Skin],show_intro_outro_cues'
                 text: '◢'
                 align: 'top|left'
                 color: 'blue'
@@ -120,7 +121,6 @@ Item {
             }
             Mixxx.WaveformMark {
                 control: "outro_start_position"
-                //   visibilityControl: '[Skin],show_intro_outro_cues'
                 text: '◣'
                 align: 'top|right'
                 color: 'blue'
@@ -128,7 +128,6 @@ Item {
             }
             Mixxx.WaveformMark {
                 control: "outro_end_position"
-                //   visibilityControl: '[Skin],show_intro_outro_cues'
                 align: 'top|left'
                 color: 'blue'
                 textColor: '#FFFFFF'

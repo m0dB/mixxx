@@ -40,6 +40,8 @@ class QmlWaveformDisplay : public QQuickItem, ISyncTimeProvider, public Waveform
                     NOTIFY playerChanged REQUIRED)
     Q_PROPERTY(QString group READ getGroup WRITE setGroup NOTIFY groupChanged REQUIRED)
     Q_PROPERTY(QQmlListProperty<QmlWaveformRendererFactory> renderers READ renderers)
+    Q_PROPERTY(double zoom READ getZoom WRITE setZoom NOTIFY zoomChanged)
+    Q_PROPERTY(QColor backgroundColor READ getBackgroundColor WRITE setBackgroundColor NOTIFY backgroundColorChanged)
     Q_CLASSINFO("DefaultProperty", "renderers")
     QML_NAMED_ELEMENT(WaveformDisplay)
 
@@ -50,7 +52,20 @@ class QmlWaveformDisplay : public QQuickItem, ISyncTimeProvider, public Waveform
     void setPlayer(QmlPlayerProxy* player);
     QmlPlayerProxy* getPlayer() const;
 
+    QColor getBackgroundColor() const {
+      return m_backgroundColor;
+    }
+    void setBackgroundColor(QColor color) {
+      m_backgroundColor = color;
+      m_dirtyFlag.setFlag(DirtyFlag::Background, true);
+      emit backgroundColorChanged();
+    }
+
     void setGroup(const QString& group) override;
+    void setZoom(double zoom) {
+      WaveformWidgetRenderer::setZoom(zoom);
+      emit zoomChanged();
+    }
 
     int fromTimerToNextSyncMicros(const PerformanceTimer& timer) override;
     int getSyncIntervalTimeMicros() const override {
@@ -74,35 +89,37 @@ class QmlWaveformDisplay : public QQuickItem, ISyncTimeProvider, public Waveform
     void slotWindowChanged(QQuickWindow* window);
   signals:
     void playerChanged();
+    void zoomChanged();
     void groupChanged(const QString& group);
+    void backgroundColorChanged();
 
   private:
     void setCurrentTrack(TrackPointer pTrack);
 
+    // Properties
     QPointer<QmlPlayerProxy> m_pPlayer;
-    TrackPointer m_pCurrentTrack;
+    QColor m_backgroundColor{QColor(0, 0, 0, 255)};
 
     PerformanceTimer m_timer;
 
-    int m_syncIntervalTimeMicros{1000000 / 60}; // TODO don't hardcode
+    int m_syncIntervalTimeMicros{1000000 / 10}; // TODO don't hardcode
 
     enum class DirtyFlag : int {
         None = 0x0,
         Geometry = 0x1,
         Window = 0x2,
+        Background = 0x4,
     };
     Q_DECLARE_FLAGS(DirtyFlags, DirtyFlag)
 
     DirtyFlags m_dirtyFlag{DirtyFlag::None};
     QList<QmlWaveformRendererFactory*> m_waveformRenderers;
 
-    allshader::WaveformRenderMark* m_waveformRenderMark;
-    allshader::WaveformRenderMarkRange* m_waveformRenderMarkRange;
 
     // Owned by the QML scene?
     rendergraph::Node* m_pTopNode;
-
-    std::unique_ptr<ControlProxy> m_pZoom;
+    allshader::WaveformRenderMark* m_waveformRenderMark;
+    allshader::WaveformRenderMarkRange* m_waveformRenderMarkRange;
 };
 
 } // namespace qml

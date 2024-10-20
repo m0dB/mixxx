@@ -8,6 +8,7 @@
 #include <QtDebug>
 #include <QtGlobal>
 #include <cstdio>
+#include <memory>
 #include <stdexcept>
 
 #include "config.h"
@@ -20,6 +21,7 @@
 #include "waveform/guitick.h"
 #include "waveform/visualsmanager.h"
 #include "waveform/waveformwidgetfactory.h"
+#include "mixer/playermanager.h"
 #endif
 #include "mixxxmainwindow.h"
 #if defined(__WINDOWS__)
@@ -60,17 +62,28 @@ int runMixxx(MixxxApplication* pApp, const CmdlineArgs& args) {
     int exitCode;
 #ifdef MIXXX_USE_QML
     if (args.isQml()) {
-        auto tick = new GuiTick();
-        auto visuals = new VisualsManager();
+        auto pTick = std::make_unique<GuiTick>();
+        auto pVisuals = std::make_unique<VisualsManager>();
         WaveformWidgetFactory::createInstance(); // takes a long time
         WaveformWidgetFactory::instance()->setConfig(pCoreServices->getSettings());
-        WaveformWidgetFactory::instance()->startVSync(tick, visuals);
+        WaveformWidgetFactory::instance()->startVSync(pTick.get(), pVisuals.get());
         mixxx::qml::QmlApplication qmlApplication(pApp, pCoreServices);
-        visuals->addDeck("[Channel1]");
-        visuals->addDeck("[Channel2]");
-        visuals->addDeck("[Channel3]");
-        visuals->addDeck("[Channel4]");
+
+        const QStringList visualGroups = pCoreServices->getPlayerManager()->getVisualPlayerGroups();
+        for (const QString& group : visualGroups) {
+            pVisuals->addDeck(group);
+        }
+        pCoreServices->getPlayerManager()->connect(pCoreServices->getPlayerManager().get(),
+                &PlayerManager::numberOfDecksChanged,
+                &qmlApplication,
+                [&pVisuals](int decks) {
+                    for (int i = 0; i < decks; ++i) {
+                        QString group = PlayerManager::groupForDeck(i);
+                        pVisuals->addDeckIfNotExist(group);
+                    }
+                });
         exitCode = pApp->exec();
+        WaveformWidgetFactory::destroy();
     } else
 #endif
     {

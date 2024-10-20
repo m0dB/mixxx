@@ -1502,6 +1502,7 @@ else()
   )
 endif()
 if(QOPENGL)
+  target_compile_definitions(mixxx-lib PRIVATE __RENDERGRAPH_IS_OPENGL)
   target_sources(mixxx-lib PRIVATE
     src/shaders/endoftrackshader.cpp
     src/shaders/slipmodeshader.cpp
@@ -2770,6 +2771,7 @@ if(QML)
   )
   target_link_libraries(mixxx-qml-lib PRIVATE mixxx-qml-mixxxcontrolsplugin)
 
+  target_compile_definitions(mixxx-qml-lib PRIVATE __RENDERGRAPH_IS_SCENEGRAPH)
   target_sources(mixxx-qml-lib PRIVATE
     src/qml/asyncimageprovider.cpp
     src/qml/qmlapplication.cpp
@@ -2792,21 +2794,20 @@ if(QML)
     src/qml/qmlwaveformdisplay.cpp
     src/qml/qmlwaveformrenderer.cpp
     src/waveform/renderers/waveformdisplayrange.cpp
-
     src/waveform/renderers/allshader/digitsrenderer.cpp
     src/waveform/renderers/allshader/waveformrenderbeat.cpp
     src/waveform/renderers/allshader/waveformrenderer.cpp
     src/waveform/renderers/allshader/waveformrendererendoftrack.cpp
+    src/waveform/renderers/allshader/waveformrendererpreroll.cpp
+    src/waveform/renderers/allshader/waveformrendererrgb.cpp
+    src/waveform/renderers/allshader/waveformrenderersignalbase.cpp
+    src/waveform/renderers/allshader/waveformrendermark.cpp
+    src/waveform/renderers/allshader/waveformrendermarkrange.cpp
     # FIXME depends on rendergraph/openglnode.h
     # src/waveform/renderers/allshader/waveformrendererslipmode.cpp
     # src/waveform/renderers/allshader/waveformrendererfiltered.cpp
     # src/waveform/renderers/allshader/waveformrendererhsv.cpp
-    src/waveform/renderers/allshader/waveformrendererpreroll.cpp
-    src/waveform/renderers/allshader/waveformrendererrgb.cpp
-    src/waveform/renderers/allshader/waveformrenderersignalbase.cpp
     # src/waveform/renderers/allshader/waveformrenderersimple.cpp
-    src/waveform/renderers/allshader/waveformrendermark.cpp
-    src/waveform/renderers/allshader/waveformrendermarkrange.cpp
     # The following sources need to be in this target to get QML_ELEMENT properly interpreted
     src/control/controlmodel.cpp
     src/control/controlsortfiltermodel.cpp
@@ -3835,7 +3836,6 @@ add_subdirectory(src/rendergraph/opengl)
 add_subdirectory(res/shaders/rendergraph)
 target_link_libraries(mixxx-lib PUBLIC rendergraph_gl)
 target_compile_definitions(mixxx-lib PRIVATE rendergraph=rendergraph_gl)
-target_compile_definitions(mixxx-lib PRIVATE __RENDERGRAPH_OPENGL__)
 target_compile_definitions(mixxx-lib PRIVATE allshader=allshader_gl)
 if(QML)
   add_subdirectory(src/rendergraph/scenegraph)
