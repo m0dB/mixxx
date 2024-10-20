@@ -137,6 +137,8 @@ void allshader::WaveformRenderMark::updateRangeNode(GeometryNode* pNode,
             {posx1, posy1}, {posx2, posy2}, {r, g, b, a}, {r, g, b, 0.f});
     vertexUpdater.addRectangleVGradient(
             {posx1, posy4}, {posx2, posy3}, {r, g, b, a}, {r, g, b, 0.f});
+
+    pNode->markDirtyGeometry();
 }
 
 bool allshader::WaveformRenderMark::isSubtreeBlocked() const {
