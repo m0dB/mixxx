@@ -66,7 +66,7 @@ int runMixxx(MixxxApplication* pApp, const CmdlineArgs& args) {
         auto pVisuals = std::make_unique<VisualsManager>();
         WaveformWidgetFactory::createInstance(); // takes a long time
         WaveformWidgetFactory::instance()->setConfig(pCoreServices->getSettings());
-        WaveformWidgetFactory::instance()->startVSync(pTick.get(), pVisuals.get());
+        WaveformWidgetFactory::instance()->startVSync(pTick.get(), pVisuals.get(), true);
         {
             mixxx::qml::QmlApplication qmlApplication(pApp, pCoreServices);
             const QStringList visualGroups =

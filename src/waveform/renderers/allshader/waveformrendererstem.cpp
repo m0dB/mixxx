@@ -4,7 +4,6 @@
 #include <QImage>
 #include <QOpenGLTexture>
 
-
 #include "rendergraph/material/rgbamaterial.h"
 #include "rendergraph/vertexupdaters/rgbavertexupdater.h"
 #include "track/track.h"
@@ -36,7 +35,7 @@ void WaveformRendererStem::onSetup(const QDomNode& node) {
 
 bool WaveformRendererStem::init() {
     auto group = m_waveformRenderer->getGroup();
-    VERIFY_OR_DEBUG_ASSERT(!group.isEmpty()){
+    VERIFY_OR_DEBUG_ASSERT(!group.isEmpty()) {
         return false;
     }
     for (int stemIdx = 1; stemIdx <= kMaxSupportedStems; stemIdx++) {

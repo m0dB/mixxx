@@ -24,9 +24,6 @@ class allshader::WaveformRenderMarkRange final : public ::WaveformRendererAbstra
   public:
     explicit WaveformRenderMarkRange(WaveformWidgetRenderer* waveformWidget);
 
-    void clearRanges() {
-        m_markRanges.clear();
-    }
     void addRange(WaveformMarkRange&& range) {
         m_markRanges.push_back(std::move(range));
     }

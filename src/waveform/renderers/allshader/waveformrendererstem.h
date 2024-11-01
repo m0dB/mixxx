@@ -2,9 +2,9 @@
 
 #include <vector>
 
+#include "control/pollingcontrolproxy.h"
 #include "rendergraph/geometrynode.h"
 #include "util/class.h"
-#include "control/pollingcontrolproxy.h"
 #include "waveform/renderers/allshader/waveformrenderersignalbase.h"
 
 class QOpenGLTexture;
@@ -15,7 +15,7 @@ class WaveformRendererStem;
 
 class allshader::WaveformRendererStem final
         : public allshader::WaveformRendererSignalBase,
-          public rendergraph::GeometryNode  {
+          public rendergraph::GeometryNode {
   public:
     explicit WaveformRendererStem(WaveformWidgetRenderer* waveformWidget,
             ::WaveformRendererAbstract::PositionSource type =

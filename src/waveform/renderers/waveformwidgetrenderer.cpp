@@ -40,13 +40,13 @@ WaveformWidgetRenderer::WaveformWidgetRenderer(const QString& group)
           m_visualPlayPosition(nullptr),
           m_totalVSamples(0),
           m_pRateRatioCO(nullptr),
-          m_pContext(nullptr),
           m_pGainControlObject(nullptr),
           m_gain(1.0),
           m_pTrackSamplesControlObject(nullptr),
           m_trackSamples(0.0),
           m_scaleFactor(1.0),
           m_playMarkerPosition(s_defaultPlayMarkerPosition),
+          m_pContext(nullptr),
           m_passthroughEnabled(false) {
     //qDebug() << "WaveformWidgetRenderer";
     for (int type = ::WaveformRendererAbstract::Play;

@@ -33,7 +33,7 @@ class allshader::WaveformRendererEndOfTrack final
 
     // Virtual for rendergraph::Node
     void preprocess() override;
-    bool isSubtreeBlocked() const override;
+    bool preprocessInner();
 
   private:
     std::unique_ptr<ControlProxy> m_pEndOfTrackControl;
@@ -41,7 +41,6 @@ class allshader::WaveformRendererEndOfTrack final
 
     QColor m_color;
     PerformanceTimer m_timer;
-    bool m_hasRendered{false};
 
     DISALLOW_COPY_AND_ASSIGN(WaveformRendererEndOfTrack);
 };
