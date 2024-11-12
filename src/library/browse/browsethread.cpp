@@ -32,14 +32,14 @@ BrowseThread::BrowseThread(QObject* parent)
     // Start thread
     start(QThread::LowPriority);
 
-    qDebug() << "Wait to start browser background thread";
-    // Wait until the thread is running
-    m_requestMutex.lock();
-    while (!m_requestedRunState) {
-        m_requestCondition.wait(&m_requestMutex);
-    }
-    m_requestMutex.unlock();
-    qDebug() << "Browser background thread started";
+    // qDebug() << "Wait to start browser background thread";
+    //  Wait until the thread is running
+    // m_requestMutex.lock();
+    // while (!m_requestedRunState) {
+    //     m_requestCondition.wait(&m_requestMutex);
+    // }
+    // m_requestMutex.unlock();
+    // qDebug() << "Browser background thread started";
 }
 
 BrowseThread::~BrowseThread() {
