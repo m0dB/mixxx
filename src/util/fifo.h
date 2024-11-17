@@ -1,9 +1,88 @@
 #pragma once
 
+#include <atomic>
 #include <cstddef>
 
+#include "pa_ringbuffer.h"
 #include "util/class.h"
 #include "util/math.h"
+
+namespace PA {
+template<class DataType>
+class FIFO {
+  public:
+    explicit FIFO(int size)
+            : m_data(roundUpToPowerOf2(size)) {
+        // If we can't represent the next higher power of 2 then bail.
+        if (m_data.size() == 0) {
+            return;
+        }
+        PaUtil_InitializeRingBuffer(&m_ringBuffer,
+                static_cast<ring_buffer_size_t>(sizeof(DataType)),
+                static_cast<ring_buffer_size_t>(m_data.size()),
+                m_data.data());
+    }
+    virtual ~FIFO() {
+    }
+    int readAvailable() const {
+        return PaUtil_GetRingBufferReadAvailable(&m_ringBuffer);
+    }
+    int writeAvailable() const {
+        return PaUtil_GetRingBufferWriteAvailable(&m_ringBuffer);
+    }
+    int read(DataType* pData, int count) {
+        return PaUtil_ReadRingBuffer(&m_ringBuffer, pData, count);
+    }
+    int write(const DataType* pData, int count) {
+        return PaUtil_WriteRingBuffer(&m_ringBuffer, pData, count);
+    }
+    void writeBlocking(const DataType* pData, int count) {
+        int written = 0;
+        while (written < count) {
+            written += write(pData + written, count - written);
+        }
+    }
+    int aquireWriteRegions(int count,
+            DataType** dataPtr1,
+            ring_buffer_size_t* sizePtr1,
+            DataType** dataPtr2,
+            ring_buffer_size_t* sizePtr2) {
+        return PaUtil_GetRingBufferWriteRegions(&m_ringBuffer,
+                count,
+                (void**)dataPtr1,
+                sizePtr1,
+                (void**)dataPtr2,
+                sizePtr2);
+    }
+    int releaseWriteRegions(int count) {
+        return PaUtil_AdvanceRingBufferWriteIndex(&m_ringBuffer, count);
+    }
+    int aquireReadRegions(int count,
+            DataType** dataPtr1,
+            ring_buffer_size_t* sizePtr1,
+            DataType** dataPtr2,
+            ring_buffer_size_t* sizePtr2) {
+        return PaUtil_GetRingBufferReadRegions(&m_ringBuffer,
+                count,
+                (void**)dataPtr1,
+                sizePtr1,
+                (void**)dataPtr2,
+                sizePtr2);
+    }
+    int releaseReadRegions(int count) {
+        return PaUtil_AdvanceRingBufferReadIndex(&m_ringBuffer, count);
+    }
+    int flushReadData(int count) {
+        int flush = math_min(readAvailable(), count);
+        return PaUtil_AdvanceRingBufferReadIndex(&m_ringBuffer, flush);
+    }
+
+  private:
+    std::vector<DataType> m_data;
+    PaUtilRingBuffer m_ringBuffer;
+    DISALLOW_COPY_AND_ASSIGN(FIFO);
+};
+} // namespace PA
 
 // Fast, trivial type only single producer single consumer ring buffer, lock and wait free.
 // Internal buffer size will be rounded up to a power of two.
@@ -11,9 +90,9 @@
 // Internally we use std::size_t, but the original API used int for the return values.
 // It would be better to use std::size_t also for the return values, but this breaks
 // Windows compilation and should be done in a follow-up PR.
-using ring_buffer_size_t = int;
+// using ring_buffer_size_t = int;
 
-template <class DataType>
+template<class DataType>
 class FIFO {
   public:
     using size_type = std::size_t;
@@ -85,9 +164,9 @@ class FIFO {
     // the second region will be nullptr and size 0.
     int aquireReadRegions(size_type count,
             DataType** dataPtr1,
-            int* sizePtr1,
+            ring_buffer_size_t* sizePtr1,
             DataType** dataPtr2,
-            int* sizePtr2) {
+            ring_buffer_size_t* sizePtr2) {
         size_type readIndex = m_readIndex.load(std::memory_order_relaxed);
         const size_type writeIndex = m_writeIndex.load(std::memory_order_acquire);
         const size_type available = writeIndex - readIndex;
@@ -111,9 +190,9 @@ class FIFO {
     // Same as aquireReadRegions, for write operations
     int aquireWriteRegions(size_type count,
             DataType** dataPtr1,
-            int* sizePtr1,
+            ring_buffer_size_t* sizePtr1,
             DataType** dataPtr2,
-            int* sizePtr2) {
+            ring_buffer_size_t* sizePtr2) {
         const size_type readIndex = m_readIndex.load(std::memory_order_acquire);
         size_type writeIndex = m_writeIndex.load(std::memory_order_relaxed);
         const size_type available = m_size - (writeIndex - readIndex);

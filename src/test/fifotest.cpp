@@ -2,14 +2,15 @@
 
 #include <algorithm>
 #include <random>
+#include <thread>
 
 #include "util/fifo.h"
 
 namespace {
 
 struct Param {
-    std::size_t requestedBufferSize;
-    std::size_t expectedBufferSize;
+    int requestedBufferSize;
+    int expectedBufferSize;
     int offset;
 };
 
@@ -56,8 +57,8 @@ TEST_P(FifoTest, readAvailableTest) {
     ASSERT_EQ(100, fifo.readAvailable());
     ASSERT_EQ(50, fifo.read(data.data(), 50));
     ASSERT_EQ(50, fifo.readAvailable());
-    ASSERT_EQ(static_cast<int>(param.expectedBufferSize - 50), fifo.write(data.data(), 1000000));
-    ASSERT_EQ(static_cast<int>(param.expectedBufferSize), fifo.readAvailable());
+    ASSERT_EQ(param.expectedBufferSize - 50, fifo.write(data.data(), 1000000));
+    ASSERT_EQ(param.expectedBufferSize, fifo.readAvailable());
 }
 
 TEST_P(FifoTest, flushReadTest) {
@@ -75,12 +76,21 @@ TEST_P(FifoTest, flushReadTest) {
 
     ASSERT_EQ(0, fifo.readAvailable());
     ASSERT_EQ(100, fifo.write(data.data(), 100));
-    ASSERT_EQ(static_cast<int>((param.offset + 50) % param.expectedBufferSize),
-            fifo.flushReadData(50));
-    ASSERT_EQ(static_cast<int>((param.offset + 100) % param.expectedBufferSize),
-            fifo.flushReadData(1000000));
-    ASSERT_EQ(static_cast<int>(param.expectedBufferSize), fifo.write(data.data(), 1000000));
-    ASSERT_EQ(static_cast<int>(param.expectedBufferSize), fifo.readAvailable());
+
+    int expected;
+    expected = (param.offset + 50) % param.expectedBufferSize;
+    if (expected < 0) {
+        expected += param.expectedBufferSize;
+    }
+    ASSERT_EQ(expected, fifo.flushReadData(50));
+
+    expected = (param.offset + 100) % param.expectedBufferSize;
+    if (expected < 0) {
+        expected += param.expectedBufferSize;
+    }
+    ASSERT_EQ(expected, fifo.flushReadData(1000000));
+    ASSERT_EQ(param.expectedBufferSize, fifo.write(data.data(), 1000000));
+    ASSERT_EQ(param.expectedBufferSize, fifo.readAvailable());
 }
 
 TEST_P(FifoTest, readWriteStressTest) {
@@ -104,7 +114,7 @@ TEST_P(FifoTest, readWriteStressTest) {
     std::random_device rd;
     std::mt19937 mt(rd());
     std::uniform_int_distribution<int> dist(
-            0, static_cast<int>(param.expectedBufferSize + param.expectedBufferSize / 10));
+            0, param.expectedBufferSize + param.expectedBufferSize / 10);
 
     while (k < 1000000) {
         int n = dist(mt);
@@ -112,10 +122,10 @@ TEST_P(FifoTest, readWriteStressTest) {
         for (int i = 0; i < m; i++) {
             wdata[i] = k++;
         }
-        ASSERT_EQ(static_cast<int>(m), fifo.write(wdata.data(), n));
+        ASSERT_EQ(m, fifo.write(wdata.data(), n));
         n = dist(mt);
         m = std::min(n, fifo.readAvailable());
-        ASSERT_EQ(static_cast<int>(m), fifo.read(rdata.data(), n));
+        ASSERT_EQ(m, fifo.read(rdata.data(), n));
         for (int i = 0; i < m; i++) {
             ASSERT_EQ(j++, rdata[i]);
         }
@@ -152,8 +162,8 @@ TEST_P(FifoTest, readWriteStressTestRegions) {
         ring_buffer_size_t size1;
         uint32_t* ptr2;
         ring_buffer_size_t size2;
-        ASSERT_EQ(static_cast<int>(m), fifo.aquireWriteRegions(n, &ptr1, &size1, &ptr2, &size2));
-        ASSERT_EQ(static_cast<int>(m), size1 + size2);
+        ASSERT_EQ(m, fifo.aquireWriteRegions(n, &ptr1, &size1, &ptr2, &size2));
+        ASSERT_EQ(m, size1 + size2);
         for (int i = 0; i < size1; i++) {
             ptr1[i] = k++;
         }
@@ -163,8 +173,8 @@ TEST_P(FifoTest, readWriteStressTestRegions) {
         fifo.releaseWriteRegions(m);
         n = dist(mt);
         m = std::min(n, fifo.readAvailable());
-        ASSERT_EQ(static_cast<int>(m), fifo.aquireReadRegions(n, &ptr1, &size1, &ptr2, &size2));
-        ASSERT_EQ(static_cast<int>(m), size1 + size2);
+        ASSERT_EQ(m, fifo.aquireReadRegions(n, &ptr1, &size1, &ptr2, &size2));
+        ASSERT_EQ(m, size1 + size2);
         for (int i = 0; i < size1; i++) {
             ASSERT_EQ(j++, ptr1[i]);
         }
@@ -189,3 +199,191 @@ INSTANTIATE_TEST_SUITE_P(FifoTestSuite,
                 Param{1234, 2048, 1200}));
 
 } // namespace
+
+constexpr int rwtotal = 500000000;
+
+template<class T_FIFO>
+class MultiThreadRW {
+    T_FIFO m_fifo;
+    bool m_ok;
+    const int m_bufferSize;
+    const int m_total;
+    const bool m_wait;
+
+  public:
+    MultiThreadRW(int ringBufferSize, int bufferSize, int total, bool wait)
+            : m_fifo(ringBufferSize),
+              m_ok{},
+              m_bufferSize(bufferSize),
+              m_total(total),
+              m_wait(wait) {
+    }
+
+    void write() {
+        int k = 0;
+        std::vector<int> buffer(m_bufferSize);
+        while (k != m_total) {
+            int n = std::min(m_bufferSize, m_total - k);
+            if (m_wait) {
+                while (m_fifo.writeAvailable() < n) {
+                }
+            }
+            n = std::min(n, m_fifo.writeAvailable());
+            for (int j = 0; j < n; j++) {
+                buffer[j] = k++;
+            }
+            m_fifo.write(buffer.data(), n);
+        }
+    }
+
+    void read() {
+        m_ok = true;
+        int k = 0;
+        std::vector<int> buffer(m_bufferSize);
+        while (k != m_total) {
+            int n = std::min(m_bufferSize, m_total - k);
+            if (m_wait) {
+                while (m_fifo.readAvailable() < n) {
+                }
+            }
+            n = m_fifo.read(buffer.data(), n);
+            for (int j = 0; j < n; j++) {
+                m_ok &= (buffer[j] == k++);
+            }
+        }
+    }
+
+    bool run() {
+        m_ok = true;
+        std::thread th1(&MultiThreadRW<T_FIFO>::write, this);
+        std::thread th2(&MultiThreadRW<T_FIFO>::read, this);
+        th1.join();
+        th2.join();
+        return m_ok;
+    }
+};
+
+TEST(FifoTest, MultiThreadRW) {
+    MultiThreadRW<FIFO<int>> io(65536, 1024, rwtotal, false);
+    bool ok = io.run();
+    ASSERT_TRUE(ok);
+}
+
+TEST(FifoTest, MultiThreadRW_PA) {
+    MultiThreadRW<PA::FIFO<int>> io(65536, 1024, rwtotal, false);
+    bool ok = io.run();
+    ASSERT_TRUE(ok);
+}
+
+TEST(FifoTest, MultiThreadRW_Wait) {
+    MultiThreadRW<FIFO<int>> io(65536, 1024, rwtotal, true);
+    bool ok = io.run();
+    ASSERT_TRUE(ok);
+}
+
+TEST(FifoTest, MultiThreadRW_PA_Wait) {
+    MultiThreadRW<PA::FIFO<int>> io(65536, 1024, rwtotal, true);
+    bool ok = io.run();
+    ASSERT_TRUE(ok);
+}
+
+template<class T_FIFO>
+class MultiThreadRegionRW {
+    T_FIFO m_fifo;
+    bool m_ok;
+    const int m_bufferSize;
+    const int m_total;
+    const bool m_wait;
+
+  public:
+    MultiThreadRegionRW(
+            int ringBufferSize, int bufferSize, int total, bool wait)
+            : m_fifo(ringBufferSize),
+              m_ok{},
+              m_bufferSize(bufferSize),
+              m_total(total),
+              m_wait(wait) {
+    }
+
+    void write() {
+        int k = 0;
+        std::vector<int> buffer(m_bufferSize);
+        while (k != m_total) {
+            int n = std::min(m_bufferSize, m_total - k);
+            int* ptr1;
+            int* ptr2;
+            ring_buffer_size_t size1;
+            ring_buffer_size_t size2;
+            if (m_wait) {
+                while (m_fifo.writeAvailable() < n) {
+                }
+            }
+            n = m_fifo.aquireWriteRegions(n, &ptr1, &size1, &ptr2, &size2);
+            for (int j = 0; j < size1; j++) {
+                ptr1[j] = k++;
+            }
+            for (int j = 0; j < size2; j++) {
+                ptr2[j] = k++;
+            }
+            m_fifo.releaseWriteRegions(n);
+        }
+    }
+
+    void read() {
+        m_ok = true;
+        int k = 0;
+        std::vector<int> buffer(m_bufferSize);
+        while (k != m_total) {
+            int n = std::min(m_bufferSize, m_total - k);
+            int* ptr1;
+            int* ptr2;
+            ring_buffer_size_t size1;
+            ring_buffer_size_t size2;
+            if (m_wait) {
+                while (m_fifo.readAvailable() < n) {
+                }
+            }
+            n = m_fifo.aquireReadRegions(n, &ptr1, &size1, &ptr2, &size2);
+            for (int j = 0; j < size1; j++) {
+                m_ok &= (ptr1[j] == k++);
+            }
+            for (int j = 0; j < size2; j++) {
+                m_ok &= (ptr2[j] == k++);
+            }
+            m_fifo.releaseReadRegions(n);
+        }
+    }
+
+    bool run() {
+        m_ok = true;
+        std::thread th1(&MultiThreadRegionRW<T_FIFO>::write, this);
+        std::thread th2(&MultiThreadRegionRW<T_FIFO>::read, this);
+        th1.join();
+        th2.join();
+        return m_ok;
+    }
+};
+
+TEST(FifoTest, MultiThreadRegionRW) {
+    MultiThreadRegionRW<FIFO<int>> io(65536, 256, rwtotal, false);
+    bool ok = io.run();
+    ASSERT_TRUE(ok);
+}
+
+TEST(FifoTest, MultiThreadRegionRW_PA) {
+    MultiThreadRegionRW<PA::FIFO<int>> io(65536, 256, rwtotal, false);
+    bool ok = io.run();
+    ASSERT_TRUE(ok);
+}
+
+TEST(FifoTest, MultiThreadRegionRW_Wait) {
+    MultiThreadRegionRW<FIFO<int>> io(65536, 256, rwtotal, true);
+    bool ok = io.run();
+    ASSERT_TRUE(ok);
+}
+
+TEST(FifoTest, MultiThreadRegionRW_PA_Wait) {
+    MultiThreadRegionRW<PA::FIFO<int>> io(65536, 256, rwtotal, true);
+    bool ok = io.run();
+    ASSERT_TRUE(ok);
+}
