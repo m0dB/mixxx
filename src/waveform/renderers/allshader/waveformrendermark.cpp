@@ -243,14 +243,13 @@ void allshader::WaveformRenderMark::paintGL() {
         // Pixmaps are expected to have the mark stroke at the center,
         // and preferably have an odd width in order to have the stroke
         // exactly at the sample position.
-        const float markHalfWidth = pTexture->width() / devicePixelRatio / 2.f;
-        const float drawOffset = currentMarkPoint - markHalfWidth;
+        const float markWidth = pTexture->width() / devicePixelRatio;
+        const float drawOffset = currentMarkPoint + pMark->getOffset();
 
         bool visible = false;
         // Check if the current point needs to be displayed.
-        if (drawOffset > -markHalfWidth &&
-                drawOffset < m_waveformRenderer->getLength() +
-                                markHalfWidth) {
+        if (drawOffset > -markWidth &&
+                drawOffset < m_waveformRenderer->getLength()) {
             drawTexture(matrix,
                     drawOffset,
                     !m_isSlipRenderer && slipActive
@@ -299,10 +298,8 @@ void allshader::WaveformRenderMark::paintGL() {
             devicePixelRatio;
 
     if (m_playPosMarkTexture.isStorageAllocated()) {
-        const float markHalfWidth = m_playPosMarkTexture.width() / devicePixelRatio / 2.f;
-        const float drawOffset = currentMarkPoint - markHalfWidth;
-
-        drawTexture(matrix, drawOffset, 0.f, &m_playPosMarkTexture);
+        const float drawOffset = -(m_playPosMarkTexture.width() / devicePixelRatio - 1.f) / 2.f;
+        drawTexture(matrix, currentMarkPoint + drawOffset, 0.f, &m_playPosMarkTexture);
     }
 
     if (WaveformWidgetFactory::instance()->getUntilMarkShowBeats() ||
@@ -404,8 +401,8 @@ void allshader::WaveformRenderMark::updatePlayPosMarkTexture() {
     // lines next to playpos
     // Note: don't draw lines where they would overlap the triangles,
     // otherwise both translucent strokes add up to a darker tone.
-    painter.drawLine(QLineF(lineX + 1.f, 4.f, lineX + 1.f, height));
-    painter.drawLine(QLineF(lineX - 1.f, 4.f, lineX - 1.f, height));
+    painter.drawLine(QLineF(lineX + 1.f, 4.f, lineX + 1.f, height / 3));
+    painter.drawLine(QLineF(lineX - 1.f, 4.f, lineX - 1.f, height / 3));
 
     // triangle at top edge
     // Increase line/waveform contrast
@@ -420,7 +417,7 @@ void allshader::WaveformRenderMark::updatePlayPosMarkTexture() {
     painter.setPen(fgColor);
     painter.setOpacity(1.0);
     // play position line
-    painter.drawLine(QLineF(lineX, 0.f, lineX, height));
+    painter.drawLine(QLineF(lineX, 0.f, lineX, height / 3));
     // triangle at top edge
     {
         QPointF baseL = QPointF(lineX - 4.f, 0.f);

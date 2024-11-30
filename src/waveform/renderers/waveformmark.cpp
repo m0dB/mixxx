@@ -100,6 +100,7 @@ WaveformMark::WaveformMark(const QString& group,
         const WaveformSignalColors& signalColors,
         int hotCue)
         : m_linePosition{},
+          m_offset{},
           m_breadth{},
           m_level{},
           m_iPriority(priority),
@@ -278,6 +279,8 @@ struct MarkerGeometry {
         const Qt::Alignment alignH = align & Qt::AlignHorizontal_Mask;
         const Qt::Alignment alignV = align & Qt::AlignVertical_Mask;
         const bool alignHCenter{alignH == Qt::AlignHCenter};
+        // when center aligning, make the image width odd (even label width + 1)
+        // so we can draw the line at a integer pixel position
         const qreal widthRounding{alignHCenter ? 2.f : 1.f};
 
         m_labelRect = QRectF{0.f,
@@ -286,17 +289,9 @@ struct MarkerGeometry {
                         widthRounding,
                 std::ceil(capHeight + 2.f * margin)};
 
-        m_imageSize = QSizeF{alignHCenter ? m_labelRect.width() + 1.f
-                                          : 2.f * m_labelRect.width() + 1.f,
-                breadth};
+        m_imageSize = QSizeF{m_labelRect.width() + 1.f, breadth};
 
-        if (alignH == Qt::AlignHCenter) {
-            m_labelRect.moveLeft((m_imageSize.width() - m_labelRect.width()) / 2.f);
-        } else if (alignH == Qt::AlignRight) {
-            m_labelRect.moveRight(m_imageSize.width() - 0.5f);
-        } else {
-            m_labelRect.moveLeft(0.5f);
-        }
+        m_labelRect.moveLeft(0.5f);
 
         const float increment = overlappingMarkerIncrement(
                 static_cast<float>(m_labelRect.height()), breadth);
@@ -373,23 +368,39 @@ QImage WaveformMark::generateImage(float devicePixelRatio) {
 
     painter.setWorldMatrixEnabled(false);
 
-    // Draw marker lines
-    const auto hcenter = markerGeometry.m_imageSize.width() / 2.f;
-    m_linePosition = static_cast<float>(hcenter);
+    const Qt::Alignment alignH = m_align & Qt::AlignHorizontal_Mask;
+    switch (alignH) {
+    case Qt::AlignHCenter:
+        m_linePosition = markerGeometry.m_imageSize.width() / 2.f;
+        m_offset = -(markerGeometry.m_imageSize.width() - 1.f) / 2.f;
+        DEBUG_ASSERT(linePos - std::roundf(linePos) < 0.000001f);
+        break;
+    case Qt::AlignLeft:
+        m_linePosition = markerGeometry.m_imageSize.width() - 1.5f;
+        m_offset = -markerGeometry.m_imageSize.width() + 2.f;
+        break;
+    case Qt::AlignRight:
+    default:
+        m_linePosition = 1.5f;
+        m_offset = -1.f;
+        break;
+    }
+
+    const float linePos = m_linePosition;
 
     // Draw the center line
     painter.setPen(fillColor());
-    painter.drawLine(QLineF(hcenter, 0.f, hcenter, markerGeometry.m_imageSize.height()));
+    painter.drawLine(QLineF(linePos, 0.f, linePos, markerGeometry.m_imageSize.height() / 2));
 
     painter.setPen(borderColor());
-    painter.drawLine(QLineF(hcenter - 1.f,
+    painter.drawLine(QLineF(linePos - 1.f,
             0.f,
-            hcenter - 1.f,
-            markerGeometry.m_imageSize.height()));
-    painter.drawLine(QLineF(hcenter + 1.f,
+            linePos - 1.f,
+            markerGeometry.m_imageSize.height() / 2));
+    painter.drawLine(QLineF(linePos + 1.f,
             0.f,
-            hcenter + 1.f,
-            markerGeometry.m_imageSize.height()));
+            linePos + 1.f,
+            markerGeometry.m_imageSize.height() / 2));
 
     if (useIcon || label.length() != 0) {
         painter.setPen(borderColor());
