@@ -6,5 +6,5 @@ if(QT_VERSION_MINOR GREATER_EQUAL 6)
 endif()
 
 add_subdirectory(opengl)
-add_subdirectory(scenegraph)
+# add_subdirectory(scenegraph)
 add_subdirectory(../../res/shaders/rendergraph shaders)
