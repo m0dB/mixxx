@@ -12,12 +12,6 @@ using namespace rendergraph;
 
 namespace allshader {
 
-namespace {
-inline float math_pow2(float x) {
-    return x * x;
-}
-} // namespace
-
 WaveformRendererHSV::WaveformRendererHSV(WaveformWidgetRenderer* waveformWidget)
         : WaveformRendererSignalBase(waveformWidget) {
     initForRectangles<RGBMaterial>(0);
