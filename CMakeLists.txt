@@ -1776,7 +1776,6 @@ if(QOPENGL)
       src/shaders/vinylqualityshader.cpp
       src/util/opengltexture2d.cpp
       src/waveform/renderers/allshader/digitsrenderer.cpp
-      src/waveform/renderers/allshader/matrixforwidgetgeometry.cpp
       src/waveform/renderers/allshader/waveformrenderbackground.cpp
       src/waveform/renderers/allshader/waveformrenderbeat.cpp
       src/waveform/renderers/allshader/waveformrenderer.cpp
