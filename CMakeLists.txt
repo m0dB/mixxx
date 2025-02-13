@@ -690,8 +690,15 @@ endif()
 
 set(CLANG_TIDY "" CACHE STRING "CMAKE_CXX_CLANG_TIDY equivalent that only applies to mixxx sources, not bundled dependencies")
 
+add_library(d2xx STATIC IMPORTED)
+set_target_properties(d2xx PROPERTIES
+  IMPORTED_LOCATION "/Users/maarten/git/dmx512usb/d2xx/release/build/libftd2xx.a"
+  INTERFACE_INCLUDE_DIRECTORIES "/Users/maarten/git/dmx512usb/d2xx/release"
+)
+
 # Mixxx itself
 add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
+  src/dmx512usb.cpp
   src/analyzer/analyzerbeats.cpp
   src/analyzer/analyzerebur128.cpp
   src/analyzer/analyzergain.cpp
@@ -2362,6 +2369,8 @@ endif()
 # Chromaprint
 find_package(Chromaprint REQUIRED)
 target_link_libraries(mixxx-lib PRIVATE Chromaprint::Chromaprint)
+
+target_link_libraries(mixxx-lib PRIVATE d2xx)
 
 # Locale Aware Compare for SQLite
 find_package(SQLite3)

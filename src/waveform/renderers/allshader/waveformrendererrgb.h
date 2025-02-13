@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include "shaders/rgbshader.h"
 #include "util/class.h"
 #include "waveform/renderers/allshader/rgbdata.h"
@@ -15,6 +17,7 @@ class allshader::WaveformRendererRGB final : public allshader::WaveformRendererS
     explicit WaveformRendererRGB(WaveformWidgetRenderer* waveformWidget,
             ::WaveformRendererAbstract::PositionSource type =
                     ::WaveformRendererAbstract::Play);
+    virtual ~WaveformRendererRGB();
 
     // override ::WaveformRendererSignalBase
     void onSetup(const QDomNode& node) override;
@@ -26,6 +29,9 @@ class allshader::WaveformRendererRGB final : public allshader::WaveformRendererS
     mixxx::RGBShader m_shader;
     VertexData m_vertices;
     RGBData m_colors;
+
+    double m_visualFrameAtPlayPos{};
+    double m_smoothDelta{};
 
     bool m_isSlipRenderer;
 

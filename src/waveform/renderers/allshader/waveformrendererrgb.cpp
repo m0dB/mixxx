@@ -1,10 +1,42 @@
 #include "waveform/renderers/allshader/waveformrendererrgb.h"
 
+#include <chrono>
+#include <iostream>
+#include <thread>
+
+#include "dmx512usb.h"
 #include "track/track.h"
 #include "util/math.h"
 #include "waveform/renderers/allshader/matrixforwidgetgeometry.h"
 #include "waveform/renderers/waveformwidgetrenderer.h"
 #include "waveform/waveform.h"
+
+namespace {
+std::atomic<uint32_t> rgb;
+std::atomic<int> clients{};
+
+void runDMX() {
+    while (clients) {
+        DMX512USB dmx(0);
+        std::chrono::steady_clock::time_point t = std::chrono::steady_clock::now();
+        for (int i = 0; i < 1000; i++) {
+            uint32_t rgbCopy = rgb.load();
+            dmx.clear();
+            dmx.set(10, 255);
+            dmx.set(11, rgbCopy >> 16);
+            dmx.set(12, (rgbCopy >> 8) & 255);
+            dmx.set(13, rgbCopy & 255);
+            dmx.send();
+            t += std::chrono::milliseconds(25);
+            std::this_thread::sleep_until(t);
+        }
+    }
+}
+
+void startDMXThread() {
+    static std::thread th(runDMX);
+}
+} // namespace
 
 namespace allshader {
 
@@ -18,6 +50,12 @@ WaveformRendererRGB::WaveformRendererRGB(WaveformWidgetRenderer* waveformWidget,
         ::WaveformRendererAbstract::PositionSource type)
         : WaveformRendererSignalBase(waveformWidget),
           m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip) {
+    clients++;
+    startDMXThread();
+}
+
+WaveformRendererRGB::~WaveformRendererRGB() {
+    clients--;
 }
 
 void WaveformRendererRGB::onSetup(const QDomNode& node) {
@@ -198,6 +236,103 @@ void WaveformRendererRGB::paintGL() {
         m_colors.addForRectangle(red, green, blue);
 
         xVisualFrame += visualIncrementPerPixel;
+    }
+
+    {
+        const double visualFrameAtPlayPos = firstVisualFrame +
+                m_waveformRenderer->getPlayMarkerPosition() *
+                        (lastVisualFrame - firstVisualFrame);
+
+        const double delta = visualFrameAtPlayPos - m_visualFrameAtPlayPos;
+        if (delta > 0 && delta < 20) {
+            m_smoothDelta = (m_smoothDelta + delta) / 2;
+        }
+        m_visualFrameAtPlayPos = visualFrameAtPlayPos;
+
+        {
+            const int visualIndexStart = std::max<int>(std::lround(m_visualFrameAtPlayPos) * 2, 0);
+            const int visualIndexStop = std::min<int>(
+                    std::lround(m_visualFrameAtPlayPos + m_smoothDelta * 3) * 2,
+                    dataSize - 1);
+
+            // Find the max values for low, mid, high and all in the waveform data.
+            // - Max of left and right
+            uchar u8maxLow{};
+            uchar u8maxMid{};
+            uchar u8maxHigh{};
+            // - Per channel
+            uchar u8maxAllChn[2]{};
+            for (int chn = 0; chn < 2; chn++) {
+                // data is interleaved left / right
+                for (int i = visualIndexStart + chn; i < visualIndexStop + chn; i += 2) {
+                    const WaveformData& waveformData = data[i];
+
+                    u8maxLow = math_max(u8maxLow, waveformData.filtered.low);
+                    u8maxMid = math_max(u8maxMid, waveformData.filtered.mid);
+                    u8maxHigh = math_max(u8maxHigh, waveformData.filtered.high);
+                    u8maxAllChn[chn] = math_max(u8maxAllChn[chn], waveformData.filtered.all);
+                }
+            }
+
+            // Cast to float
+            float maxLow = static_cast<float>(u8maxLow);
+            float maxMid = static_cast<float>(u8maxMid);
+            float maxHigh = static_cast<float>(u8maxHigh);
+            float maxAllChn[2]{static_cast<float>(u8maxAllChn[0]),
+                    static_cast<float>(u8maxAllChn[1])};
+            // Uncomment to undo scaling with pow(value, 2.0f * 0.316f) done in analyzerwaveform.h
+            // float maxAllChn[2]{unscale(u8maxAllChn[0]), unscale(u8maxAllChn[1])};
+
+            // Calculate the squared magnitude of the maxLow, maxMid and maxHigh values.
+            // We take the square root to get the magnitude below.
+            const float sum = math_pow2(maxLow) + math_pow2(maxMid) + math_pow2(maxHigh);
+
+            // Apply the gains
+            maxLow *= lowGain;
+            maxMid *= midGain;
+            maxHigh *= highGain;
+
+            // Calculate the squared magnitude of the gained maxLow, maxMid and maxHigh values
+            // We take the square root to get the magnitude below.
+            const float sumGained = math_pow2(maxLow) + math_pow2(maxMid) + math_pow2(maxHigh);
+
+            // The maxAll values will be used to draw the amplitude. We scale them according to
+            // magnitude of the gained maxLow, maxMid and maxHigh values
+            if (sum != 0.f) {
+                // magnitude = sqrt(sum) and magnitudeGained = sqrt(sumGained), and
+                // factor = magnitudeGained / magnitude, but we can do with a single sqrt:
+                const float factor = std::sqrt(sumGained / sum);
+                maxAllChn[0] *= factor;
+                maxAllChn[1] *= factor;
+            }
+
+            // Use the gained maxLow, maxMid and maxHigh values to calculate the color components
+            float red = maxLow * low_r + maxMid * mid_r + maxHigh * high_r;
+            float green = maxLow * low_g + maxMid * mid_g + maxHigh * high_g;
+            float blue = maxLow * low_b + maxMid * mid_b + maxHigh * high_b;
+
+            // Normalize the color components using the maximum of the three
+            const float maxComponent = math_max3(red, green, blue);
+            if (maxComponent == 0.f) {
+                // Avoid division by 0
+                red = 0.f;
+                green = 0.f;
+                blue = 0.f;
+            } else {
+                const float normFactor = 255.f / maxComponent;
+                red *= normFactor;
+                green *= normFactor;
+                blue *= normFactor;
+            }
+
+            uint32_t ured = std::lround(std::min(255.f, red));
+            uint32_t ugreen = std::lround(std::min(255.f, green));
+            uint32_t ublue = std::lround(std::min(255.f, blue));
+
+            std::cout << "XXXXXXXX" << ured << " " << ugreen << " " << ublue << std::endl;
+
+            rgb.store((ured << 16) | (ugreen << 8) | ublue);
+        }
     }
 
     DEBUG_ASSERT(reserved == m_vertices.size());
