@@ -30,9 +30,10 @@ class allshader::WaveformRendererRGB final : public allshader::WaveformRendererS
     VertexData m_vertices;
     RGBData m_colors;
 
+  public:
+    int m_clientId{};
     double m_visualFrameAtPlayPos{};
     double m_smoothDelta{};
-
     bool m_isSlipRenderer;
 
     DISALLOW_COPY_AND_ASSIGN(WaveformRendererRGB);
