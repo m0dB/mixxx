@@ -13,13 +13,15 @@
 
 class DMXController {
   public:
-    int m_numClients{0};
+    std::atomic<int> m_numClients{};
     std::chrono::steady_clock::time_point m_start;
     DMX512USB m_dmx;
     std::thread m_thread;
     allshader::WaveformRendererRGB* m_pClients[4];
+    int m_prevms{};
+    bool m_last{};
     std::atomic<int> m_tick{};
-    std::atomic<uint32_t> m_rgb;
+    std::atomic<uint32_t> m_rgb[4]{};
     DMXController()
             : m_start(std::chrono::steady_clock::now()),
               m_dmx(0),
@@ -32,18 +34,32 @@ class DMXController {
         int ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now() - m_start)
                          .count();
+        if (ms - m_prevms < 4) {
+            m_prevms = ms;
+            return m_last;
+        }
         if (ms - m_tick > 24) {
             m_tick = ms;
         }
-        return ms - m_tick > 8;
+        m_last = ms - m_tick > 8;
+        m_prevms = ms;
+        return m_last;
     }
     void run() {
+        try {
+            runInner();
+        } catch (...) {
+            qWarning() << "DMXController exception";
+        }
+    }
+    void runInner() {
         int standard = 1000 / 30;
         int interval = 1000 / 30;
         int tick = 0;
         auto t = std::chrono::steady_clock::now();
-        uint8_t rs{}, gs{}, bs{};
-        uint8_t rf{}, gf{}, bf{};
+        std::array<uint32_t, 4> rf{};
+        std::array<uint32_t, 4> gf{};
+        std::array<uint32_t, 4> bf{};
         while (m_numClients != -1) {
             int curtick = m_tick;
             if (curtick > tick + standard * 2 / 3) {
@@ -63,42 +79,44 @@ class DMXController {
 
             t += std::chrono::milliseconds(interval);
             std::this_thread::sleep_until(t);
-            uint32_t rgbCopy = m_rgb.load();
-            uint8_t r = (rgbCopy >> 16) & 255;
-            uint8_t g = (rgbCopy >> 8) & 255;
-            uint8_t b = (rgbCopy) & 255;
 
-            uint8_t m = std::max(r, std::max(g, b));
-            if (r != m)
-                r /= 2;
-            if (g != m)
-                g /= 2;
-            if (b != m)
-                b /= 2;
+            uint32_t rt{}, gt{}, bt{};
+            uint32_t n = 0;
+            for (int i = 0; i < 4; i++) {
+                uint32_t rgbCopy = m_rgb[i].load();
+                uint32_t r = (rgbCopy >> 16) & 255;
+                uint32_t g = (rgbCopy >> 8) & 255;
+                uint32_t b = (rgbCopy) & 255;
 
-            uint8_t cd = 8;
-            if (r > rs)
-                rs = r;
-            else if (rs >= cd)
-                rs -= cd;
-            if (g > gs)
-                gs = g;
-            else if (gs >= cd)
-                gs -= cd;
-            if (b > bs)
-                bs = b;
-            else if (bs >= cd)
-                bs -= cd;
+                uint32_t m = std::max(r, std::max(g, b));
+                if (r != m)
+                    r /= 2;
+                if (g != m)
+                    g /= 2;
+                if (b != m)
+                    b /= 2;
 
-            rf = (rf + rs) / 2;
-            gf = (gf + gs) / 2;
-            bf = (bf + bs) / 2;
+                rf[i] = r > rf[i] + 32 ? (rf[i] * 7 + r) / 8 : (rf[i] + r) / 2;
+                gf[i] = g > gf[i] + 32 ? (gf[i] * 7 + g) / 8 : (gf[i] + g) / 2;
+                bf[i] = b > bf[i] + 32 ? (bf[i] * 7 + b) / 8 : (bf[i] + b) / 2;
 
+                if (rf[i] != 0 || gf[i] != 0 || bf[i] != 0) {
+                    rt += rf[i];
+                    gt += gf[i];
+                    bt += bf[i];
+                    n++;
+                }
+            }
+            if (n != 0) {
+                rt /= n;
+                gt /= n;
+                bt /= n;
+            }
             m_dmx.clear();
             m_dmx.set(10, 255);
-            m_dmx.set(11, rf);
-            m_dmx.set(12, gf);
-            m_dmx.set(13, bf);
+            m_dmx.set(11, rt);
+            m_dmx.set(12, gt);
+            m_dmx.set(13, bt);
             m_dmx.send();
         }
     }
@@ -126,8 +144,11 @@ class DMXController {
     }
     static DMXController* instance() {
         static DMXController* pInstance = nullptr;
-        if (!pInstance)
-            pInstance = new DMXController;
+        if (!pInstance) {
+            if (DMX512USB::getDeviceCount() != 0) {
+                pInstance = new DMXController;
+            }
+        }
         return pInstance;
     }
 };
@@ -144,11 +165,13 @@ WaveformRendererRGB::WaveformRendererRGB(WaveformWidgetRenderer* waveformWidget,
         ::WaveformRendererAbstract::PositionSource type)
         : WaveformRendererSignalBase(waveformWidget),
           m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip) {
-    m_clientId = DMXController::instance()->addClient(this);
+    m_clientId = DMXController::instance() ? DMXController::instance()->addClient(this) : -1;
 }
 
 WaveformRendererRGB::~WaveformRendererRGB() {
-    DMXController::instance()->removeClient(this);
+    if (m_clientId != -1) {
+        DMXController::instance()->removeClient(this);
+    }
 }
 
 void WaveformRendererRGB::onSetup(const QDomNode& node) {
@@ -202,6 +225,8 @@ void WaveformRendererRGB::paintGL() {
     float allGain(1.0), lowGain(1.0), midGain(1.0), highGain(1.0);
     // applyCompensation = false, as we scale to match filtered.all
     getGains(&allGain, false, &lowGain, &midGain, &highGain);
+    float volume{};
+    getVolume(&volume);
 
     const float breadth = static_cast<float>(m_waveformRenderer->getBreadth()) * devicePixelRatio;
     const float halfBreadth = breadth / 2.0f;
@@ -331,15 +356,17 @@ void WaveformRendererRGB::paintGL() {
         xVisualFrame += visualIncrementPerPixel;
     }
 
-    if (DMXController::instance()->tick()) {
+    if (m_clientId != -1 && DMXController::instance()->tick()) {
         const double visualFrameAtPlayPos = firstVisualFrame +
                 m_waveformRenderer->getPlayMarkerPosition() *
                         (lastVisualFrame - firstVisualFrame);
 
         const double delta = visualFrameAtPlayPos - m_visualFrameAtPlayPos;
-        if (delta > 0 && delta < 20) {
+        if (delta > 0 && delta < 100) {
             m_smoothDelta = (m_smoothDelta + delta) / 2;
         }
+        if (delta == 0)
+            volume = 0.f;
         m_visualFrameAtPlayPos = visualFrameAtPlayPos;
 
             const int visualIndexStart = std::max<int>(std::lround(m_visualFrameAtPlayPos) * 2, 0);
@@ -461,11 +488,12 @@ void WaveformRendererRGB::paintGL() {
         }
         */
 
-            uint32_t ured = std::lround(std::clamp(red, 0.f, 255.f));
-            uint32_t ugreen = std::lround(std::clamp(green, 0.f, 255.f));
-            uint32_t ublue = std::lround(std::clamp(blue, 0.f, 255.f));
+            uint32_t ured = std::lround(std::clamp(red * volume, 0.f, 255.f));
+            uint32_t ugreen = std::lround(std::clamp(green * volume, 0.f, 255.f));
+            uint32_t ublue = std::lround(std::clamp(blue * volume, 0.f, 255.f));
 
-            DMXController::instance()->m_rgb.store((ured << 16) | (ugreen << 8) | ublue);
+            DMXController::instance()->m_rgb[m_clientId].store(
+                    (ured << 16) | (ugreen << 8) | ublue);
     }
 
     DEBUG_ASSERT(reserved == m_vertices.size());
