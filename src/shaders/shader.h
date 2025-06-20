@@ -24,6 +24,8 @@ class mixxx::Shader
 
   protected:
     void load(const QString& fragmentShader, const QString& vertexShader);
+    void loadRendergraphFiles(const QString& vertexShaderFilename,
+            const QString& fragmentShaderFilename);
 
   private:
     DISALLOW_COPY_AND_ASSIGN(Shader)
