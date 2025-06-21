@@ -15,6 +15,7 @@
 
 using namespace rendergraph;
 
+namespace {
 class ClearNode : public OpenGLNode {
   public:
     void paintGL() override {
@@ -22,6 +23,7 @@ class ClearNode : public OpenGLNode {
         glClear(GL_COLOR_BUFFER_BIT);
     }
 };
+} // namespace
 
 WSpinnyGLSL::WSpinnyGLSL(
         QWidget* parent,
@@ -31,19 +33,14 @@ WSpinnyGLSL::WSpinnyGLSL(
         BaseTrackPlayer* pPlayer)
         : WSpinnyBase(parent, group, pConfig, pVCMan, pPlayer) {
     auto pTopNode = std::make_unique<Node>();
+
     pTopNode->appendChildNode(std::make_unique<ClearNode>());
-    {
-        auto pNode = std::make_unique<GeometryNode>();
-        pNode->initForRectangles<TextureMaterial>(1);
-        m_pLoadedCoverNode = pNode.get();
-        pTopNode->appendChildNode(std::move(pNode));
-    }
-    {
-        auto pNode = std::make_unique<GeometryNode>();
-        pNode->initForRectangles<TextureMaterial>(1);
-        m_pFgNode = pNode.get();
-        pTopNode->appendChildNode(std::move(pNode));
-    }
+    m_pBgNode = createTextureNode(pTopNode.get());
+    m_pLoadedCoverNode = createTextureNode(pTopNode.get());
+    m_pMaskNode = createTextureNode(pTopNode.get());
+    m_pGhostNode = createTextureNode(pTopNode.get());
+    m_pFgNode = createTextureNode(pTopNode.get());
+
     m_pEngine = std::make_unique<Engine>(std::move(pTopNode));
 }
 
@@ -67,7 +64,15 @@ WSpinnyGLSL::~WSpinnyGLSL() {
 // }
 
 void WSpinnyGLSL::coverChanged() {
-    m_textureUpdateNeeded = true;
+    m_bCoverUpdatePending = true;
+}
+
+GeometryNode* WSpinnyGLSL::createTextureNode(Node* pParentNode) {
+    auto pNode = std::make_unique<GeometryNode>();
+    auto pResult = pNode.get();
+    pNode->initForRectangles<TextureMaterial>(0);
+    pParentNode->appendChildNode(std::move(pNode));
+    return pResult;
 }
 
 void WSpinnyGLSL::draw() {
@@ -82,19 +87,16 @@ void WSpinnyGLSL::resizeGL(int w, int h) {
     w = static_cast<int>(std::lround(static_cast<qreal>(w) / devicePixelRatioF()));
     h = static_cast<int>(std::lround(static_cast<qreal>(h) / devicePixelRatioF()));
     m_pEngine->resize(w, h);
-    m_textureUpdateNeeded = true;
+    updateTextures();
 }
 
 void WSpinnyGLSL::updateTextures() {
-    if (m_pBgImage) {
-        // m_bgTexture.setData(*m_pBgImage);
-    }
-    if (m_pMaskImage) {
-        // m_maskTexture.setData(*m_pMaskImage);
-    }
-    // m_fgTextureScaled.setData(m_fgImageScaled);
-    // m_ghostTextureScaled.setData(m_ghostImageScaled);
-    // m_loadedCoverTextureScaled.setData(m_loadedCoverScaled);
+    updateTexture(m_pBgNode, m_pBgImage ? *m_pBgImage.get() : QImage{});
+    updateTexture(m_pLoadedCoverNode, m_loadedCoverScaled.toImage());
+    updateTexture(m_pMaskNode, m_pMaskImage ? *m_pMaskImage.get() : QImage{});
+    updateTexture(m_pFgNode, m_fgImageScaled);
+    updateTexture(m_pGhostNode, m_ghostImageScaled);
+    m_bCoverUpdatePending = false;
 }
 
 void WSpinnyGLSL::setupVinylSignalQuality() {
@@ -124,39 +126,31 @@ void WSpinnyGLSL::updateVinylSignalQualityImage(
     //     }
 }
 
+void WSpinnyGLSL::updateTexture(GeometryNode* pNode, const QImage& image) {
+    if (image.isNull()) {
+        pNode->geometry().allocate(0);
+    } else {
+        const int numVertices = 6; // two triangles
+        pNode->geometry().allocate(numVertices);
+        dynamic_cast<TextureMaterial&>(pNode->material())
+                .setTexture(std::make_unique<Texture>(
+                        getContext(), image));
+
+        TexturedVertexUpdater vertexUpdater{
+                pNode->geometry().vertexDataAs<Geometry::TexturedPoint2D>()};
+        vertexUpdater.addRectangle({0.f, 0.f},
+                {static_cast<float>(width()), static_cast<float>(height())},
+                {0.f, 0.f},
+                {1.f, 1.f});
+    }
+    pNode->markDirtyMaterial();
+    pNode->markDirtyGeometry();
+}
+
 void WSpinnyGLSL::paintGL() {
-    if (m_textureUpdateNeeded) {
-        m_textureUpdateNeeded = false;
-
-        {
-            dynamic_cast<TextureMaterial&>(m_pLoadedCoverNode->material())
-                    .setTexture(std::make_unique<Texture>(
-                            getContext(), m_loadedCoverScaled.toImage()));
-
-            TexturedVertexUpdater vertexUpdater{
-                    m_pLoadedCoverNode->geometry().vertexDataAs<Geometry::TexturedPoint2D>()};
-            vertexUpdater.addRectangle({0.f, 0.f},
-                    {static_cast<float>(width()), static_cast<float>(height())},
-                    {0.f, 0.f},
-                    {1.f, 1.f});
-
-            m_pLoadedCoverNode->markDirtyMaterial();
-            m_pLoadedCoverNode->markDirtyGeometry();
-        }
-        {
-            dynamic_cast<TextureMaterial&>(m_pFgNode->material())
-                    .setTexture(std::make_unique<Texture>(getContext(), m_fgImageScaled));
-
-            TexturedVertexUpdater vertexUpdater{
-                    m_pFgNode->geometry().vertexDataAs<Geometry::TexturedPoint2D>()};
-            vertexUpdater.addRectangle({0.f, 0.f},
-                    {static_cast<float>(width()), static_cast<float>(height())},
-                    {0.f, 0.f},
-                    {1.f, 1.f});
-
-            m_pFgNode->markDirtyMaterial();
-            m_pFgNode->markDirtyGeometry();
-        }
+    if (m_bCoverUpdatePending) {
+        updateTexture(m_pLoadedCoverNode, m_loadedCoverScaled.toImage());
+        m_bCoverUpdatePending = false;
     }
 
     {
@@ -165,6 +159,13 @@ void WSpinnyGLSL::paintGL() {
         QMatrix4x4 rotate;
         rotate.rotate(m_fAngle, 0, 0, -1);
         m_pFgNode->material().setUniform(0, rotate * matrix);
+    }
+    {
+        // TODO use scenegraph semantics for transformation
+        auto matrix = m_pEngine->matrix();
+        QMatrix4x4 rotate;
+        rotate.rotate(m_fGhostAngle, 0, 0, -1);
+        m_pGhostNode->material().setUniform(0, rotate * matrix);
     }
 
     m_pEngine->preprocess();
@@ -238,53 +239,9 @@ void WSpinnyGLSL::paintGL() {
 }
 
 void WSpinnyGLSL::initializeGL() {
-    //     initializeOpenGLFunctions();
-    //
-    //     updateTextures();
-    //
-    //     m_qTexture.setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
-    //     m_qTexture.setSize(m_iVinylScopeSize, m_iVinylScopeSize);
-    //     m_qTexture.setFormat(QOpenGLTexture::R8_UNorm);
-    //     m_qTexture.allocateStorage(QOpenGLTexture::Red, QOpenGLTexture::UInt8);
-    //
-    //     m_textureShader.init();
-    //     m_vinylQualityShader.init();
+    updateTextures();
 }
 
-// void WSpinnyGLSL::drawTexture(QOpenGLTexture* pTexture) {
-//     const float texx1 = 0.f;
-//     const float texy1 = 1.0;
-//     const float texx2 = 1.f;
-//     const float texy2 = 0.f;
-//
-//     const float tw = pTexture->width();
-//     const float th = pTexture->height();
-//
-//     // fill centered
-//     const float posx2 = tw >= th ? 1.f : tw / th;
-//     const float posy2 = th >= tw ? 1.f : th / tw;
-//     const float posx1 = -posx2;
-//     const float posy1 = -posy2;
-//
-//     const std::array<float, 8> posarray = {posx1, posy1, posx2, posy1, posx1,
-//     posy2, posx2, posy2}; const std::array<float, 8> texarray = {texx1,
-//     texy1, texx2, texy1, texx1, texy2, texx2, texy2};
-//
-//     int positionLocation = m_textureShader.positionLocation();
-//     int texcoordLocation = m_textureShader.texcoordLocation();
-//
-//     m_textureShader.setAttributeArray(
-//             positionLocation, GL_FLOAT, posarray.data(), 2);
-//     m_textureShader.setAttributeArray(
-//             texcoordLocation, GL_FLOAT, texarray.data(), 2);
-//
-//     pTexture->bind();
-//
-//     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-//
-//     pTexture->release();
-// }
-//
 // void WSpinnyGLSL::drawVinylQuality() {
 //     const float texx1 = 0.f;
 //     const float texy1 = 1.f;

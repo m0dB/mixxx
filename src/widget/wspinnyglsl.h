@@ -1,17 +1,15 @@
 #pragma once
 
-// #include "shaders/textureshader.h"
 // #include "shaders/vinylqualityshader.h"
-// #include "util/opengltexture2d.h"
 #include "widget/wspinnybase.h"
 
 namespace rendergraph {
 class Engine;
 class Context;
+class Node;
 class GeometryNode;
 } // namespace rendergraph
 
-// class QOpenGLTexture;
 
 class WSpinnyGLSL : public WSpinnyBase {
     Q_OBJECT
@@ -34,9 +32,9 @@ class WSpinnyGLSL : public WSpinnyBase {
     void initializeGL() override;
     void paintGL() override;
     void resizeGL(int w, int h) override;
-    // void drawTexture(QOpenGLTexture* pTexture);
-    // void cleanupGL();
     void updateTextures();
+    void updateTexture(rendergraph::GeometryNode* pNode, const QImage& image);
+    rendergraph::GeometryNode* createTextureNode(rendergraph::Node* pParentNode);
 
     void setupVinylSignalQuality() override;
     void updateVinylSignalQualityImage(
@@ -45,16 +43,12 @@ class WSpinnyGLSL : public WSpinnyBase {
 
     std::unique_ptr<rendergraph::Engine> m_pEngine;
 
+    rendergraph::GeometryNode* m_pBgNode;
     rendergraph::GeometryNode* m_pLoadedCoverNode;
     rendergraph::GeometryNode* m_pFgNode;
-    // mixxx::TextureShader m_textureShader;
+    rendergraph::GeometryNode* m_pGhostNode;
+    rendergraph::GeometryNode* m_pMaskNode;
     // mixxx::VinylQualityShader m_vinylQualityShader;
-    // OpenGLTexture2D m_bgTexture;
-    // OpenGLTexture2D m_maskTexture;
-    // OpenGLTexture2D m_fgTextureScaled;
-    // OpenGLTexture2D m_ghostTextureScaled;
-    // OpenGLTexture2D m_loadedCoverTextureScaled;
-    // OpenGLTexture2D m_qTexture;
     QColor m_vinylQualityColor;
-    bool m_textureUpdateNeeded{true};
+    bool m_bCoverUpdatePending{};
 };
