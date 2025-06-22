@@ -40,7 +40,7 @@ WSpinnyGLSL::WSpinnyGLSL(
     m_pMaskNode = createTextureNode(pTopNode.get());
     m_pGhostNode = createTextureNode(pTopNode.get());
     m_pFgNode = createTextureNode(pTopNode.get());
-
+    m_pVinylQualityNode = createTextureNode(pTopNode.get());
     m_pEngine = std::make_unique<Engine>(std::move(pTopNode));
 }
 
@@ -64,7 +64,7 @@ WSpinnyGLSL::~WSpinnyGLSL() {
 // }
 
 void WSpinnyGLSL::coverChanged() {
-    m_bCoverUpdatePending = true;
+    m_bLoadedCoverNodeUpdatePending = true;
 }
 
 GeometryNode* WSpinnyGLSL::createTextureNode(Node* pParentNode) {
@@ -87,47 +87,51 @@ void WSpinnyGLSL::resizeGL(int w, int h) {
     w = static_cast<int>(std::lround(static_cast<qreal>(w) / devicePixelRatioF()));
     h = static_cast<int>(std::lround(static_cast<qreal>(h) / devicePixelRatioF()));
     m_pEngine->resize(w, h);
-    updateTextures();
+    updateTextureNodes();
 }
 
-void WSpinnyGLSL::updateTextures() {
-    updateTexture(m_pBgNode, m_pBgImage ? *m_pBgImage.get() : QImage{});
-    updateTexture(m_pLoadedCoverNode, m_loadedCoverScaled.toImage());
-    updateTexture(m_pMaskNode, m_pMaskImage ? *m_pMaskImage.get() : QImage{});
-    updateTexture(m_pFgNode, m_fgImageScaled);
-    updateTexture(m_pGhostNode, m_ghostImageScaled);
-    m_bCoverUpdatePending = false;
+void WSpinnyGLSL::updateTextureNodes() {
+    updateTextureNode(m_pBgNode, m_pBgImage ? *m_pBgImage.get() : QImage{});
+    updateTextureNode(m_pLoadedCoverNode, m_loadedCoverScaled.toImage());
+    updateTextureNode(m_pMaskNode, m_pMaskImage ? *m_pMaskImage.get() : QImage{});
+    updateTextureNode(m_pFgNode, m_fgImageScaled);
+    updateTextureNode(m_pGhostNode, m_ghostImageScaled);
+
+    m_bDrawingVinylQuality = shouldDrawVinylQuality();
+    updateTextureNode(m_pVinylQualityNode, m_bDrawingVinylQuality ? m_vinylQualityImage : QImage{});
+
+    m_bLoadedCoverNodeUpdatePending = false;
 }
 
 void WSpinnyGLSL::setupVinylSignalQuality() {
+    m_vinylQualityImage = QImage{m_iVinylScopeSize,
+            m_iVinylScopeSize,
+            QImage::Format_RGBA8888_Premultiplied};
+    m_vinylQualityImage.fill(0);
 }
 
 void WSpinnyGLSL::updateVinylSignalQualityImage(
-        const QColor& qual_color, const unsigned char* /*data*/) {
-    m_vinylQualityColor = qual_color;
-    m_vinylQualityColor.setAlphaF(0.75f);
-    //     if (m_qTexture.isStorageAllocated()) {
-    //         makeCurrentIfNeeded();
-    //         m_qTexture.bind();
-    //         // Using a texture of one byte per pixel so we can store the vinyl
-    //         // signal quality data directly. The VinylQualityShader will draw this
-    //         // colorized with alpha transparency.
-    //         glTexSubImage2D(GL_TEXTURE_2D,
-    //                 0,
-    //                 0,
-    //                 0,
-    //                 m_iVinylScopeSize,
-    //                 m_iVinylScopeSize,
-    //                 GL_RED,
-    //                 GL_UNSIGNED_BYTE,
-    //                 data);
-    //         m_qTexture.release();
-    //         doneCurrent();
-    //     }
+        const QColor& qual_color, const unsigned char* data) {
+    // Convert vinyl-quality data to rgba with premultiplied alpha,
+    // to be used as texture.
+    unsigned char* ptr = m_vinylQualityImage.bits();
+    unsigned char* end = ptr + m_iVinylScopeSize * m_iVinylScopeSize * 4;
+    const unsigned int r = qual_color.red();
+    const unsigned int g = qual_color.green();
+    const unsigned int b = qual_color.blue();
+    while (ptr != end) {
+        unsigned int a = *data++;
+        a = (a + a + a) >> 2; // 75%
+        *ptr++ = (r * a) >> 8;
+        *ptr++ = (g * a) >> 8;
+        *ptr++ = (b * a) >> 8;
+        *ptr++ = a;
+    }
 }
 
-void WSpinnyGLSL::updateTexture(GeometryNode* pNode, const QImage& image) {
+void WSpinnyGLSL::updateTextureNode(GeometryNode* pNode, const QImage& image) {
     if (image.isNull()) {
+        // Will effectively not draw anything
         pNode->geometry().allocate(0);
     } else {
         const int numVertices = 6; // two triangles
@@ -148,9 +152,18 @@ void WSpinnyGLSL::updateTexture(GeometryNode* pNode, const QImage& image) {
 }
 
 void WSpinnyGLSL::paintGL() {
-    if (m_bCoverUpdatePending) {
-        updateTexture(m_pLoadedCoverNode, m_loadedCoverScaled.toImage());
-        m_bCoverUpdatePending = false;
+    if (m_bLoadedCoverNodeUpdatePending) {
+        updateTextureNode(m_pLoadedCoverNode, m_loadedCoverScaled.toImage());
+        m_bLoadedCoverNodeUpdatePending = false;
+    }
+
+    if (m_bDrawingVinylQuality != shouldDrawVinylQuality()) {
+        m_bDrawingVinylQuality = shouldDrawVinylQuality();
+        updateTextureNode(m_pVinylQualityNode,
+                m_bDrawingVinylQuality ? m_vinylQualityImage : QImage{});
+    } else if (m_bDrawingVinylQuality) {
+        auto& material = dynamic_cast<TextureMaterial&>(m_pVinylQualityNode->material());
+        material.texture(0)->setData(m_vinylQualityImage);
     }
 
     {
@@ -170,119 +183,8 @@ void WSpinnyGLSL::paintGL() {
 
     m_pEngine->preprocess();
     m_pEngine->render();
-    //     glDisable(GL_DEPTH_TEST);
-    //     glEnable(GL_BLEND);
-    //     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //
-    //     glClearColor(0.f, 0.f, 0.f, 1.f);
-    //     glClear(GL_COLOR_BUFFER_BIT);
-    //
-    // m_textureShader.bind();
-
-    //     int matrixLocation = m_textureShader.matrixLocation();
-    //     int textureLocation = m_textureShader.textureLocation();
-    //     int positionLocation = m_textureShader.positionLocation();
-    //     int texcoordLocation = m_textureShader.texcoordLocation();
-    //
-    //     QMatrix4x4 matrix;
-    //     m_textureShader.setUniformValue(matrixLocation, matrix);
-    //
-    //     m_textureShader.enableAttributeArray(positionLocation);
-    //     m_textureShader.enableAttributeArray(texcoordLocation);
-    //
-    //     m_textureShader.setUniformValue(textureLocation, 0);
-    //
-    //     if (m_bgTexture.isStorageAllocated()) {
-    //         drawTexture(&m_bgTexture);
-    //     }
-    //
-    //     if (m_bShowCover && m_loadedCoverTextureScaled.isStorageAllocated()) {
-    //         drawTexture(&m_loadedCoverTextureScaled);
-    //     }
-    //
-    //     if (m_maskTexture.isStorageAllocated()) {
-    //         drawTexture(&m_maskTexture);
-    //     }
-    //
-    //     // Overlay the signal quality drawing if vinyl is active
-    //     if (shouldDrawVinylQuality()) {
-    //         m_textureShader.release();
-    //         drawVinylQuality();
-    //         m_textureShader.bind();
-    //     }
-    //
-    //     // To rotate the foreground image around the center of the image,
-    //     // we use the classic trick of translating the coordinate system such that
-    //     // the origin is at the center of the image. We then rotate the coordinate system,
-    //     // and draw the image at the corner.
-    //     // p.translate(width() / 2, height() / 2);
-    //
-    //     bool paintGhost = m_bGhostPlayback && m_ghostTextureScaled.isStorageAllocated();
-    //
-    //     if (paintGhost) {
-    //         QMatrix4x4 rotate;
-    //         rotate.rotate(m_fGhostAngle, 0, 0, -1);
-    //         m_textureShader.setUniformValue(matrixLocation, rotate);
-    //
-    //         drawTexture(&m_ghostTextureScaled);
-    //     }
-    //
-    //     if (m_fgTextureScaled.isStorageAllocated()) {
-    //         QMatrix4x4 rotate;
-    //         rotate.rotate(m_fAngle, 0, 0, -1);
-    //         m_textureShader.setUniformValue(matrixLocation, rotate);
-    //
-    //         drawTexture(&m_fgTextureScaled);
-    //     }
-    //
-    //     m_textureShader.release();
 }
 
 void WSpinnyGLSL::initializeGL() {
-    updateTextures();
+    updateTextureNodes();
 }
-
-// void WSpinnyGLSL::drawVinylQuality() {
-//     const float texx1 = 0.f;
-//     const float texy1 = 1.f;
-//     const float texx2 = 1.f;
-//     const float texy2 = 0.f;
-//
-//     const float posx2 = 1.f;
-//     const float posy2 = 1.f;
-//     const float posx1 = -1.f;
-//     const float posy1 = -1.f;
-//
-//     const std::array<float, 8> posarray = {posx1, posy1, posx2, posy1, posx1,
-//     posy2, posx2, posy2}; const std::array<float, 8> texarray = {texx1,
-//     texy1, texx2, texy1, texx1, texy2, texx2, texy2};
-//
-//     m_vinylQualityShader.bind();
-//     int matrixLocation = m_vinylQualityShader.matrixLocation();
-//     int colorLocation = m_vinylQualityShader.colorLocation();
-//     int textureLocation = m_vinylQualityShader.textureLocation();
-//     int positionLocation = m_vinylQualityShader.positionLocation();
-//     int texcoordLocation = m_vinylQualityShader.texcoordLocation();
-//
-//     QMatrix4x4 matrix;
-//     m_vinylQualityShader.setUniformValue(matrixLocation, matrix);
-//     m_vinylQualityShader.setUniformValue(colorLocation, m_vinylQualityColor);
-//
-//     m_vinylQualityShader.enableAttributeArray(positionLocation);
-//     m_vinylQualityShader.enableAttributeArray(texcoordLocation);
-//
-//     m_vinylQualityShader.setUniformValue(textureLocation, 0);
-//
-//     m_vinylQualityShader.setAttributeArray(
-//             positionLocation, GL_FLOAT, posarray.data(), 2);
-//     m_vinylQualityShader.setAttributeArray(
-//             texcoordLocation, GL_FLOAT, texarray.data(), 2);
-//
-//     m_qTexture.bind();
-//
-//     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-//
-//     m_qTexture.release();
-//
-//     m_vinylQualityShader.release();
-// }

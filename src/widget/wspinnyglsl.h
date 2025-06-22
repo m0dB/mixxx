@@ -32,14 +32,13 @@ class WSpinnyGLSL : public WSpinnyBase {
     void initializeGL() override;
     void paintGL() override;
     void resizeGL(int w, int h) override;
-    void updateTextures();
-    void updateTexture(rendergraph::GeometryNode* pNode, const QImage& image);
+    void updateTextureNodes();
+    void updateTextureNode(rendergraph::GeometryNode* pNode, const QImage& image);
     rendergraph::GeometryNode* createTextureNode(rendergraph::Node* pParentNode);
 
     void setupVinylSignalQuality() override;
     void updateVinylSignalQualityImage(
             const QColor& qual_color, const unsigned char* data) override;
-    void drawVinylQuality();
 
     std::unique_ptr<rendergraph::Engine> m_pEngine;
 
@@ -48,7 +47,8 @@ class WSpinnyGLSL : public WSpinnyBase {
     rendergraph::GeometryNode* m_pFgNode;
     rendergraph::GeometryNode* m_pGhostNode;
     rendergraph::GeometryNode* m_pMaskNode;
-    // mixxx::VinylQualityShader m_vinylQualityShader;
-    QColor m_vinylQualityColor;
-    bool m_bCoverUpdatePending{};
+    rendergraph::GeometryNode* m_pVinylQualityNode;
+    QImage m_vinylQualityImage;
+    bool m_bLoadedCoverNodeUpdatePending{};
+    bool m_bDrawingVinylQuality{};
 };
