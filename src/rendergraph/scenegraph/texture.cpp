@@ -13,6 +13,11 @@ Texture::Texture(Context* pContext, const QImage& image)
     DEBUG_ASSERT(!m_pTexture->textureSize().isNull());
 }
 
+void Texture::setData(const QImage& image) {
+    (void)image;
+    qWarning() << "Texture::setImage not implemented for rendergraph scenegraph backend";
+}
+
 qint64 Texture::comparisonKey() const {
     return m_pTexture->comparisonKey();
 }

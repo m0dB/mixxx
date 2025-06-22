@@ -53,6 +53,21 @@ Texture::Texture(Context*, const QImage& image)
     m_pTexture->setWrapMode(QOpenGLTexture::ClampToEdge);
 }
 
+void Texture::setData(const QImage& image) {
+    VERIFY_OR_DEBUG_ASSERT(image.width() == m_pTexture->width() &&
+            image.height() == m_pTexture->height()) {
+        return;
+    }
+
+    // calls glTexSubImage2D
+    if (image.format() == QImage::Format_RGBA8888_Premultiplied) {
+        m_pTexture->setData(0, QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, image.bits());
+    } else {
+        QImage convertedImage = image.convertToFormat(QImage::Format_RGBA8888_Premultiplied);
+        m_pTexture->setData(0, QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, convertedImage.bits());
+    }
+}
+
 qint64 Texture::comparisonKey() const {
     return static_cast<qint64>(m_pTexture->textureId());
 }
